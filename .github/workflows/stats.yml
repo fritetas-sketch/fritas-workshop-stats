@@ -2,7 +2,7 @@ name: Stats Workshop
 
 on:
   schedule:
-    - cron: '23,53 * * * *'
+    - cron: '8,23,38,53 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -72,8 +72,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
-      - name: Relancer dans 30 min
+      - name: Relancer dans 15 min
         run: |
-          sleep 1680
+          sleep 780
           n=$(gh run list --workflow stats.yml --json status,databaseId --jq "[.[] | select(.databaseId != ${{ github.run_id }}) | select(.status == \"queued\" or .status == \"pending\" or .status == \"waiting\" or .status == \"in_progress\")] | length")
           if [ "$n" = "0" ]; then gh workflow run stats.yml --ref main; fi
