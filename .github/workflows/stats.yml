@@ -9,14 +9,14 @@ permissions:
   contents: write
   pages: write
   id-token: write
-
-concurrency:
-  group: stats
-  cancel-in-progress: false
+  actions: write
 
 jobs:
   stats:
     runs-on: ubuntu-latest
+    concurrency:
+      group: stats
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -63,3 +63,17 @@ jobs:
           git add -A
           git commit -q -m "Stats du $(date '+%d/%m/%Y %H:%M')"
           git push -q -f origin data
+
+  relance:
+    needs: stats
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Relancer dans 30 min
+        run: |
+          sleep 1680
+          n=$(gh run list --workflow stats.yml --json status,databaseId --jq "[.[] | select(.databaseId != ${{ github.run_id }}) | select(.status == \"queued\" or .status == \"pending\" or .status == \"waiting\" or .status == \"in_progress\")] | length")
+          if [ "$n" = "0" ]; then gh workflow run stats.yml --ref main; fi
