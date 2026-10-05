@@ -26,6 +26,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Reprendre les relevés
+        run: |
+          if git fetch -q origin data; then
+            for f in history.json comments_cache.json followers.json ids.txt media media_cache.json pages_cache.json thumbs_cache.json; do git checkout FETCH_HEAD -- "$f" 2>/dev/null || true; done
+          fi
+
       - name: Relevé Steam
         shell: pwsh
         run: ./fetch.ps1 -Fast
@@ -53,8 +59,7 @@ jobs:
         run: |
           git config user.name "fritas-stats"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout --orphan snapshot
+          git checkout -q --orphan data
           git add -A
           git commit -q -m "Stats du $(date '+%d/%m/%Y %H:%M')"
-          git branch -M snapshot main
-          git push -q -f origin main
+          git push -q -f origin data
