@@ -419,8 +419,29 @@ try { const s = localStorage.getItem("fritasPer"); if (PER[s]) per = s; } catch 
 const tip = document.getElementById("tip");
 const showTip = (e, h) => { tip.innerHTML = h; tip.hidden = false; const w = tip.offsetWidth; tip.style.left = Math.min(e.clientX + 14, innerWidth - w - 8) + "px"; tip.style.top = (e.clientY + 16) + "px"; };
 const hideTip = () => { tip.hidden = true; };
-const mins = Math.max(0, Math.round((Date.now() / 1000 - NOW) / 60));
-document.getElementById("ago").textContent = mins < 2 ? "à l'instant" : mins < 60 ? `il y a ${mins} min` : mins < 1440 ? `il y a ${Math.round(mins / 60)} h` : `il y a ${Math.round(mins / 1440)} j`;
+function drawAgo() {
+  const mins = Math.max(0, Math.round((Date.now() / 1000 - NOW) / 60));
+  document.getElementById("ago").textContent = mins < 2 ? "à l'instant" : mins < 60 ? `il y a ${mins} min` : mins < 1440 ? `il y a ${Math.round(mins / 60)} h` : `il y a ${Math.round(mins / 1440)} j`;
+}
+drawAgo();
+setInterval(drawAgo, 30000);
+let checking = false;
+async function checkNew() {
+  if (checking || document.hidden) return;
+  checking = true;
+  try {
+    const res = await fetch(location.pathname + "?r=" + Date.now(), { cache: "no-store" });
+    const m = /"generated"\s*:\s*(\d+)/.exec(await res.text());
+    if (m && +m[1] > NOW) {
+      try { sessionStorage.setItem("fritasScroll", String(scrollY)); } catch (e) {}
+      location.replace(location.pathname + "?r=" + m[1] + location.hash);
+      return;
+    }
+  } catch (e) {}
+  checking = false;
+}
+setInterval(checkNew, 120000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { drawAgo(); checkNew(); } });
 document.getElementById("prof").href = `https://steamcommunity.com/profiles/${DATA.steamId}/myworkshopfiles/?appid=4000`;
 
 function every(sec) {
@@ -475,7 +496,7 @@ function render() {
 
   drawLikes(a, b);
 
-  document.getElementById("note").textContent = `Les chiffres viennent de l'API Steam, relevés automatiquement toutes les 30 minutes depuis le ${longWhen(T0)}. Les gains sont nets : les désabonnements sont déduits. Quand il manque des relevés, les heures concernées sont hachurées et le gain est compté à la reprise.`;
+  document.getElementById("note").textContent = `Les chiffres viennent de l'API Steam, relevés automatiquement toutes les 15 minutes depuis le ${longWhen(T0)} (un relevé gardé par demi-heure). La page se met à jour toute seule quand un nouveau relevé arrive. Les gains sont nets : les désabonnements sont déduits. Quand il manque des relevés, les heures concernées sont hachurées et le gain est compté à la reprise.`;
 }
 
 function likesByAddon(one) {
@@ -862,4 +883,5 @@ drawLaunch();
 drawGeo();
 drawHeat();
 let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { drawChart(); drawCmp(); drawLaunch(); }, 150); });
+try { const y = sessionStorage.getItem("fritasScroll"); if (y != null) { sessionStorage.removeItem("fritasScroll"); requestAnimationFrame(() => scrollTo(0, +y)); } } catch (e) {}
 </script>
