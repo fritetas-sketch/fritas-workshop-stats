@@ -42,6 +42,7 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .periods { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; display: flex; gap: 6px; padding: 8px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-radius: 16px; width: fit-content; max-width: 100%; flex-wrap: wrap; }
 .periods button { cursor: pointer; border: 0; background: var(--card); box-shadow: 0 0 0 1px var(--line); padding: 10px 16px; border-radius: 12px; font: 700 16px/1 var(--f-b); white-space: nowrap; }
 .periods button:hover { box-shadow: 0 0 0 2px var(--bar); }
+.periods .sm { display: none; }
 .periods button[aria-pressed="true"] { background: var(--ink); color: var(--card); box-shadow: none; }
 
 .card { background: var(--card); border-radius: 20px; box-shadow: 0 0 0 1px var(--line); padding: 22px 24px; min-width: 0; }
@@ -293,6 +294,24 @@ html { scroll-behavior: smooth; }
 .fx b { font: 800 26px/1 var(--f-d); }
 .fx span { color: var(--muted); font-size: 13px; }
 .fx small { color: var(--ink-2); font-size: 13px; }
+@media (max-width: 640px) {
+  .periods { flex-wrap: nowrap; width: 100%; gap: 4px; padding: 6px; box-sizing: border-box; }
+  .periods button { flex: 1 1 0; min-width: 0; padding: 9px 4px; font-size: 14px; }
+  .periods .lg { display: none; }
+  .periods .sm { display: inline; }
+  .toc { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding-inline: 0; }
+  .heat { overflow: visible; }
+  .heat table { min-width: 0; border-spacing: 2px; }
+  .heat th:first-child { width: 30px; }
+  .heat th { font-size: 11px; padding: 0 2px; }
+  .heat td { height: 18px; border-radius: 3px; }
+  .cmp-leg table { min-width: 0; font-size: 13px; }
+  .cmp-leg th, .cmp-leg td { padding: 6px 4px; }
+  .cmp-leg td:first-child { white-space: normal; }
+  .cmp-leg .dot { margin-right: 5px; }
+  #cmpLeg th:nth-child(n+5), #cmpLeg td:nth-child(n+5) { display: none; }
+  #lnLeg th:nth-child(2), #lnLeg td:nth-child(2), #lnLeg th:nth-child(5), #lnLeg td:nth-child(5) { display: none; }
+}
 </style>
 
 <div class="wrap">
@@ -303,11 +322,11 @@ html { scroll-behavior: smooth; }
   <nav class="toc" aria-label="Sommaire"><a href="#chartCard">📈 Graphique</a><a href="#secRec">🏆 Records</a><a href="#cmpCard">⚖️ Comparer</a><a href="#secTrend">🔥 Tendances</a><a href="#secChat">💬 Commentaires</a><a href="#secWant">🙋 Réclamations</a><a href="#secLaunch">🚀 Lancement</a><a href="#secLikes">👍 Likes</a><a href="#secMap">🌍 Carte</a><a href="#secHeat">🕐 Heures</a></nav>
 
   <div class="periods" role="group" aria-label="Période" id="periods">
-    <button type="button" data-p="day">Aujourd'hui</button>
+    <button type="button" data-p="day"><span class="lg">Aujourd'hui</span><span class="sm">Auj.</span></button>
     <button type="button" data-p="yday">Hier</button>
-    <button type="button" data-p="week">7 jours</button>
-    <button type="button" data-p="month">30 jours</button>
-    <button type="button" data-p="all">Depuis le début</button>
+    <button type="button" data-p="week"><span class="lg">7 jours</span><span class="sm">7 j</span></button>
+    <button type="button" data-p="month"><span class="lg">30 jours</span><span class="sm">30 j</span></button>
+    <button type="button" data-p="all"><span class="lg">Depuis le début</span><span class="sm">Tout</span></button>
   </div>
 
   <p class="focus" id="focus" hidden></p>
