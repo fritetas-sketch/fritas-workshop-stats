@@ -75,5 +75,10 @@ jobs:
       - name: Relancer dans 15 min
         run: |
           sleep 780
-          n=$(gh run list --workflow stats.yml --json status,databaseId --jq "[.[] | select(.databaseId != ${{ github.run_id }}) | select(.status == \"queued\" or .status == \"pending\" or .status == \"waiting\" or .status == \"in_progress\")] | length")
-          if [ "$n" = "0" ]; then gh workflow run stats.yml --ref main; fi
+          n=$(gh run list --workflow stats.yml --json status,databaseId --jq "[.[] | select(.databaseId != ${{ github.run_id }}) | select(.status == \"queued\" or .status == \"pending\" or .status == \"waiting\" or .status == \"in_progress\")] | length" || echo 0)
+          if [ "$n" != "0" ]; then exit 0; fi
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if gh workflow run stats.yml --ref main; then exit 0; fi
+            sleep 60
+          done
+          exit 1
