@@ -243,8 +243,6 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .cmp-strip button[aria-pressed="false"] .av { opacity: .45; filter: grayscale(.6); }
 #lnChart svg, #cmpChart svg { width: 100%; height: auto; display: block; overflow: visible; }
 .cmp-leg { overflow-x: auto; margin-top: 10px; }
-.ln-chips { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 4px 0 10px; font-size: 13px; font-weight: 700; }
-.ln-chips i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
 .cmp-leg td.muted { color: var(--muted); font-size: 13px; }
 .cmp-leg table { width: 100%; border-collapse: collapse; min-width: 640px; font-size: 14px; }
 .cmp-leg th { text-align: right; font: 600 12px var(--f-b); color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -350,7 +348,7 @@ html { scroll-behavior: smooth; }
     <section class="card chat" id="secChat"><div class="sec-h2"><h2 class="sec-t">Ce que disent les joueurs</h2><span class="badge" id="chatN"></span></div><div class="seg chatseg" id="chatSeg" role="group" aria-label="Filtre des commentaires"></div><div class="msgs" id="msgs"></div></section>
   </div>
   <section class="card" id="secWant"><div class="sec-h2"><h2 class="sec-t">Ce que les joueurs réclament</h2><span class="badge" id="wantN"></span></div><p class="lead" id="wantLead"></p><div class="want" id="want"></div></section>
-  <section class="card" id="secLaunch"><div class="sec-h2"><h2 class="sec-t">Courbe de lancement</h2><div class="seg" id="lnSeg" role="group" aria-label="Durée affichée"></div></div><p class="lead" id="lnLead"></p><div id="lnChart"></div><div class="cmp-leg" id="lnLeg"></div></section>
+  <section class="card" id="secLaunch"><div class="sec-h2"><h2 class="sec-t">Courbe de lancement</h2><div class="seg" id="lnSeg" role="group" aria-label="Durée affichée"></div></div><p class="lead" id="lnLead"></p><div class="cmp-pick"><div class="cmp-quick" id="lnQuick"><button type="button" data-q="mix">Récents + gros</button><button type="button" data-q="new">5 derniers</button><button type="button" data-q="big">5 plus gros</button><button type="button" data-q="all">Tous</button><button type="button" data-q="none">Aucun</button></div><div class="strip cmp-strip" id="lnStrip" role="group" aria-label="Addons affichés"></div></div><div id="lnChart"></div><div class="cmp-leg" id="lnLeg"></div></section>
 
   <div class="two">
     <section class="card" id="secLikes"><div class="sec-h2"><h2 class="sec-t" id="lkT">Les likes</h2><span class="badge" id="lkB"></span></div><div id="likes"></div></section>
@@ -739,7 +737,28 @@ document.querySelectorAll(".cmp-quick button").forEach(b => b.addEventListener("
   document.getElementById("recN").textContent = nNew ? `${nNew} record${nNew > 1 ? "s" : ""} aujourd'hui !` : `${out.length} records`;
   document.getElementById("recN").className = nNew ? "badge" : "badge muted";
   document.getElementById("recs").innerHTML = out.map(([ic, lab, v, unit, when, i, isNew]) => `<div class="rc${isNew ? " new" : ""}"><span class="ic">${ic}</span><div class="rx"><span class="lab">${lab}</span><b class="num">${v}</b><span class="u">${unit}</span>${i ? `<a class="who" href="${url(i.id)}" target="_blank" rel="noopener"><img src="${i.art}" alt="" loading="lazy">${esc(nameOf(i))}</a>` : ""}<span class="w">${when}</span>${isNew ? `<span class="nw">Nouveau record aujourd'hui !</span>` : ""}</div></div>`).join("");
-}const LNCOL = ["#6d5dfc", "#ff7a1a", "#0f9f62", "#e0434b", "#1f8fe0", "#c026d3", "#a16207", "#0891b2"];
+}const LNCOL = ["#6d5dfc", "#ff7a1a", "#0f9f62", "#e0434b", "#1f8fe0", "#c026d3", "#a16207", "#0891b2", "#be185d", "#4d7c0f", "#7c3aed", "#ea580c", "#0d9488", "#64748b", "#ca8a04", "#2563eb"];
+function lnCandidates() {
+  return [...items].filter(i => {
+    if (NOW - i.created > 30 * 86400) return false;
+    const first = series("s", i.id).find(p => p.t > i.created);
+    return first && first.t - i.created <= 48 * 3600;
+  }).sort((a, b) => b.created - a.created);
+}
+function lnDefault(cand) {
+  const pick = new Set(cand.slice(0, 4).map(i => i.id));
+  [...cand].sort((a, b) => b.subs - a.subs).slice(0, 4).forEach(i => pick.add(i.id));
+  return pick;
+}
+let lnSel = null;
+try { const s = JSON.parse(localStorage.getItem("fritasLnSel") || "null"); if (Array.isArray(s) && s.length) lnSel = new Set(s.filter(id => byId[id])); } catch (e) {}
+const saveLnSel = () => { try { localStorage.setItem("fritasLnSel", JSON.stringify([...lnSel])); } catch (e) {} };
+document.querySelectorAll("#lnQuick button").forEach(b => b.addEventListener("click", () => {
+  const cand = lnCandidates(), q = b.dataset.q;
+  lnSel = q === "all" ? new Set(cand.map(i => i.id)) : q === "none" ? new Set() : q === "big" ? new Set([...cand].sort((x, y) => y.subs - x.subs).slice(0, 5).map(i => i.id)) : q === "new" ? new Set(cand.slice(0, 5).map(i => i.id)) : lnDefault(cand);
+  saveLnSel();
+  drawLaunch();
+}));
 const LN = { d1: ["24 h", 1], d3: ["3 jours", 3], d7: ["7 jours", 7], d14: ["14 jours", 14] };
 let lnK = "d3";
 try { const s = localStorage.getItem("fritasLn"); if (LN[s]) lnK = s; } catch (e) {}
@@ -757,10 +776,16 @@ function drawLaunch() {
   seg.innerHTML = Object.entries(LN).map(([k, m]) => `<button type="button" data-k="${k}" aria-pressed="${k === lnK}">${m[0]}</button>`).join("");
   seg.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { lnK = b.dataset.k; try { localStorage.setItem("fritasLn", lnK); } catch (e) {} drawLaunch(); }));
   const days = LN[lnK][1], span = days * 86400;
-  const rec = [...items].filter(i => NOW - i.created < 21 * 86400 && series("s", i.id).length > 1).sort((a, b) => b.created - a.created).slice(0, 8);
+  const cand = lnCandidates();
+  if (!lnSel) lnSel = lnDefault(cand);
+  const LC = id => LNCOL[cand.findIndex(r => r.id === id) % LNCOL.length] || "#9aa3b5";
+  const strip = document.getElementById("lnStrip"), keep = strip.scrollLeft;
+  strip.innerHTML = cand.map(i => `<button type="button" data-id="${i.id}" aria-pressed="${lnSel.has(i.id)}" style="--cc:${LC(i.id)}"><span class="av"><img src="${i.art}" alt="" loading="lazy"></span><span class="nm">${esc(nameOf(i))}</span></button>`).join("");
+  strip.scrollLeft = keep;
+  strip.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { const id = b.dataset.id; lnSel.has(id) ? lnSel.delete(id) : lnSel.add(id); saveLnSel(); drawLaunch(); }));
+  const rec = cand.filter(i => lnSel.has(i.id));
   const el = document.getElementById("lnChart"), leg = document.getElementById("lnLeg");
-  if (!rec.length) { el.innerHTML = `<p class="note">Aucune sortie récente à comparer.</p>`; leg.innerHTML = ""; document.getElementById("lnLead").textContent = ""; return; }
-  const LC = id => LNCOL[rec.findIndex(r => r.id === id)] || "#9aa3b5";
+  if (!rec.length) { el.innerHTML = `<p class="note">${cand.length ? "Choisis au moins un addon ci-dessus." : "Aucune sortie récente à comparer."}</p>`; leg.innerHTML = ""; document.getElementById("lnLead").textContent = ""; return; }
   const short = i => nameOf(i).replace(/\s*\(.*?\)\s*/g, " ").trim();
   const clip = pts => {
     const end = pts[0].t + span, out = [pts[0]];
@@ -801,7 +826,7 @@ function drawLaunch() {
     ends.forEach(e => { svg += `<text x="${W - R + 12}" y="${e.yy + 4}" font-size="13" font-family="Figtree"><tspan font-weight="700" fill="${e.col}">${esc(short(e.i))}</tspan><tspan fill="var(--muted)"> ${fmt(e.v)}</tspan></text>`; });
   }
   svg += `<line id="lnCur" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--muted)" stroke-width="1" visibility="hidden"/><rect id="lnHit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>`;
-  el.innerHTML = (mob ? `<div class="ln-chips">${S.map(s => `<span><i style="background:${LC(s.i.id)}"></i>${esc(short(s.i))}</span>`).join("")}</div>` : "") + svg + `</svg>`;
+  el.innerHTML = svg + `</svg>`;
   const hit = el.querySelector("#lnHit"), cur = el.querySelector("#lnCur"), svgEl = el.querySelector("svg");
   const move = e => {
     const r = svgEl.getBoundingClientRect(), X = (e.clientX - r.left) * W / r.width, h = Math.max(0, Math.min(span / 3600, (X - L) / (W - L - R) * span / 3600));
