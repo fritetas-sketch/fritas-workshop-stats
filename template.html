@@ -360,7 +360,7 @@ html { scroll-behavior: smooth; }
 
   <div class="headline"><h1 id="h1"></h1><p id="h2"></p></div>
 
-  <nav class="toc" aria-label="Sommaire"><a href="#secRank">🥇 Classement</a><a href="#chartCard">📈 Graphique</a><a href="#secRec">🏆 Records</a><a href="#cmpCard">⚖️ Comparer</a><a href="#secTrend">🔥 Tendances</a><a href="#secChat">💬 Commentaires</a><a href="#secWant">🙋 Réclamations</a><a href="#secLaunch">🚀 Lancement</a><a href="#secLikes">👍 Likes</a><a href="#secMap">🌍 Carte</a><a href="#secHeat">🕐 Heures</a></nav>
+  <nav class="toc" aria-label="Sommaire"><a href="#secRank">🥇 Classement</a><a href="#chartCard">📈 Graphique</a><a href="#cmpCard">⚖️ Comparer</a><a href="#secTrend">🔥 Tendances</a><a href="#secChat">💬 Commentaires</a><a href="#secWant">🙋 Réclamations</a><a href="#secLaunch">🚀 Lancement</a><a href="#secLikes">👍 Likes</a><a href="#secMap">🌍 Carte</a><a href="#secHeat">🕐 Heures</a></nav>
 
   <div class="periods" role="group" aria-label="Période" id="periods">
     <button type="button" data-p="day"><span class="lg">Aujourd'hui</span><span class="sm">Auj.</span></button>
@@ -373,7 +373,7 @@ html { scroll-behavior: smooth; }
   <p class="focus" id="focus" hidden></p>
   <section class="kpis" id="kpis" aria-label="Chiffres de la période"></section>
 
-  <section class="card" id="secRank"><div class="sec-h2"><h2 class="sec-t" id="rkT">Classement</h2><span class="badge" id="rkB"></span></div><p class="lead" id="rkLead"></p><div id="rkWrap"></div></section>
+  <section class="card" id="secRank"><div class="sec-h2"><h2 class="sec-t" id="rkT">Classement</h2></div><p class="lead" id="rkLead"></p><div id="rkWrap"></div></section>
 
   <section class="card" id="chartCard">
     <div class="ch-h"><div><h2 id="chT"></h2><p id="chS"></p></div><div class="seg" id="metric" role="group" aria-label="Mesure"></div></div>
@@ -381,8 +381,6 @@ html { scroll-behavior: smooth; }
     <div id="chart"></div>
     <div class="legend" id="legend"><span><i style="background:var(--bar)"></i>Gagnés</span><span><i style="background:var(--hot)"></i>En cours</span><span><i style="background:var(--line)"></i>Pas encore relevé</span><span><i style="background:repeating-linear-gradient(45deg,var(--muted) 0 2px,transparent 2px 5px)"></i>PC éteint, pas de relevé</span></div>
   </section>
-
-  <section class="card" id="secRec"><div class="sec-h2"><h2 class="sec-t">Tes records</h2><span class="badge" id="recN"></span></div><p class="lead">Les meilleurs moments relevés depuis le début. Quand un record tombe, il s'allume.</p><div class="recs" id="recs"></div></section>
 
   <section class="card" id="cmpCard"><div class="sec-h2"><h2 class="sec-t">Comparer</h2><div class="seg" id="cmpMetric" role="group" aria-label="Mesure comparée"></div></div>
     <div class="seg cmpax" id="cmpAxis" role="group" aria-label="Axe horizontal"></div>
@@ -525,7 +523,7 @@ function render() {
   const unsub = gl && gs ? Math.max(0, gl.v - gs.v) : 0;
   document.getElementById("h2").innerHTML = gl && gl.v > 0
     ? `Gain net : <b>${fmt(gl.v)}</b> nouveaux moins <b>${fmt(unsub)}</b> départs. Soit un abonné de plus toutes les <b>${every(covered / Math.max(1, gs ? gs.v : gl.v))}</b>. ${lead && lead.g > 0 && gs && gs.v > 0 ? `<b>${esc(nameOf(lead.i))}</b> en ramène le plus (${Math.round(lead.g / gs.v * 100)} %).` : ""}`
-    : `Le premier relevé date du ${longWhen(T0)}. Les chiffres arrivent tout seuls, un relevé par heure.`;
+    : `Le premier relevé date du ${longWhen(T0)}. Les chiffres arrivent tout seuls, au fil des relevés.`;
 
   const pr = P.prevRange ? P.prevRange() : null;
   const cmp = (k, cur) => {
@@ -560,7 +558,7 @@ function render() {
 
   drawLikes(a, b);
 
-  document.getElementById("note").textContent = `Les chiffres viennent de l'API Steam, relevés automatiquement toutes les 15 minutes depuis le ${longWhen(T0)} (un relevé gardé par demi-heure). La page se met à jour toute seule quand un nouveau relevé arrive. Les gains sont nets : les désabonnements sont déduits. Quand il manque des relevés, les heures concernées sont hachurées et le gain est compté à la reprise.`;
+  document.getElementById("note").textContent = `Les chiffres viennent de l'API Steam, relevés automatiquement, plusieurs fois par heure, depuis le ${longWhen(T0)} (un relevé gardé par demi-heure). La page se met à jour toute seule quand un nouveau relevé arrive. Les gains sont nets : les désabonnements sont déduits. Quand il manque des relevés, les heures concernées sont hachurées et le gain est compté à la reprise.`;
 }
 
 function drawRank(a, b, P) {
@@ -568,8 +566,6 @@ function drawRank(a, b, P) {
     .sort((x, y) => (y.g ?? -1e9) - (x.g ?? -1e9) || y.i.subs - x.i.subs);
   const wrap = document.getElementById("rkWrap");
   document.getElementById("rkT").textContent = `Classement ${P.lab}`;
-  const tot = rows.reduce((s, r) => s + Math.max(0, r.g || 0), 0);
-  document.getElementById("rkB").textContent = tot > 0 ? `+${fmt(tot)} abonnés` : "";
   document.getElementById("rkLead").innerHTML = rows.some(r => r.g != null)
     ? `Tes addons classés par abonnés gagnés ${P.lab}, avec leurs likes et dislikes au total.`
     : `Pas encore de relevé ${P.lab}. Le classement apparaît dès qu'il y a deux relevés.`;
@@ -743,28 +739,32 @@ function drawWant() {
 const CMPCOL = ["#6d5dfc", "#ff7a1a", "#0f9f62", "#e0434b", "#1f8fe0", "#c026d3", "#ca8a04", "#0891b2", "#be185d", "#4d7c0f"];
 const CMPM = { s: ["Abonnés", "abonnés"], ls: ["Abonnés cumulés", "abonnés cumulés"], v: ["Vues", "vues"], up: ["Likes", "likes"], rk: ["Rang (semaine)", "rang"] };
 const byRank = [...items].sort((a, b) => b.subs - a.subs);
-const colorOf = id => { const k = byRank.findIndex(i => i.id === id); return CMPCOL[k] || "#9aa3b5"; };
-let cmpSel = new Set(byRank.slice(0, 3).map(i => i.id)), cmpM = "s", cmpAx = "rel";
-try { const s = JSON.parse(localStorage.getItem("fritasCmp") || "null"); if (Array.isArray(s) && s.length) cmpSel = new Set(s.filter(id => byId[id])); const m = localStorage.getItem("fritasCmpM"); if (CMPM[m]) cmpM = m; const ax = localStorage.getItem("fritasCmpAx"); if (ax === "rel" || ax === "date") cmpAx = ax; } catch (e) {}
-const saveCmp = () => { try { localStorage.setItem("fritasCmp", JSON.stringify([...cmpSel])); localStorage.setItem("fritasCmpM", cmpM); localStorage.setItem("fritasCmpAx", cmpAx); } catch (e) {} };
+const cmpCol = {};
+const colorOf = id => cmpCol[id] || "#9aa3b5";
+let cmpSel = new Set([...items].sort((a, b) => b.created - a.created).slice(0, 5).map(i => i.id)), cmpM = "s", cmpAx = "rel", cmpWin = 0;
+try { const s = JSON.parse(localStorage.getItem("fritasCmp") || "null"); if (Array.isArray(s) && s.length) cmpSel = new Set(s.filter(id => byId[id])); const m = localStorage.getItem("fritasCmpM"); if (CMPM[m]) cmpM = m; const ax = localStorage.getItem("fritasCmpAx"); if (ax === "rel" || ax === "date") cmpAx = ax; const w = +localStorage.getItem("fritasCmpWin"); if ([0, 3, 7, 14].includes(w)) cmpWin = w; } catch (e) {}
+const saveCmp = () => { try { localStorage.setItem("fritasCmp", JSON.stringify([...cmpSel])); localStorage.setItem("fritasCmpM", cmpM); localStorage.setItem("fritasCmpAx", cmpAx); localStorage.setItem("fritasCmpWin", String(cmpWin)); } catch (e) {} };
 function drawCmp() {
   const ms = document.getElementById("cmpMetric");
   ms.innerHTML = Object.entries(CMPM).map(([k, m]) => `<button type="button" data-k="${k}" aria-pressed="${k === cmpM}">${m[0]}</button>`).join("");
   ms.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { cmpM = b.dataset.k; saveCmp(); drawCmp(); }));
   const rel = cmpAx === "rel" && cmpM !== "rk";
+  Object.keys(cmpCol).forEach(k => delete cmpCol[k]);
+  [...cmpSel].filter(id => byId[id]).forEach((id, k) => { cmpCol[id] = CMPCOL[k % CMPCOL.length]; });
   const axEl = document.getElementById("cmpAxis");
   axEl.hidden = cmpM === "rk";
-  axEl.innerHTML = `<button type="button" data-a="rel" aria-pressed="${cmpAx === "rel"}">Depuis la sortie (J1)</button><button type="button" data-a="date" aria-pressed="${cmpAx === "date"}">Par date</button>`;
-  axEl.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { cmpAx = b.dataset.a; saveCmp(); drawCmp(); }));
+  axEl.innerHTML = `<button type="button" data-a="rel" aria-pressed="${cmpAx === "rel"}">Depuis la sortie</button><button type="button" data-a="date" aria-pressed="${cmpAx === "date"}">Par date</button>${rel ? [[3, "3 j"], [7, "7 j"], [14, "14 j"], [0, "Tout"]].map(([w, l]) => `<button type="button" data-w="${w}" aria-pressed="${cmpWin === w}">${l}</button>`).join("") : ""}`;
+  axEl.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { if (b.dataset.a) cmpAx = b.dataset.a; if (b.dataset.w != null) cmpWin = +b.dataset.w; saveCmp(); drawCmp(); }));
   const st = document.getElementById("cmpStrip"), keep = st.scrollLeft;
   st.innerHTML = byRank.map(i => `<button type="button" data-id="${i.id}" aria-pressed="${cmpSel.has(i.id)}" style="--cc:${colorOf(i.id)}"><span class="av"><img src="${i.art}" alt="" loading="lazy"></span><span class="nm">${esc(nameOf(i))}</span></button>`).join("");
   st.scrollLeft = keep;
   st.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { const id = b.dataset.id; cmpSel.has(id) ? cmpSel.delete(id) : cmpSel.add(id); saveCmp(); drawCmp(); }));
   const sel = byRank.filter(i => cmpSel.has(i.id));
   const get = (h, id) => { const x = h.items.find(y => y.id === id); if (!x) return null; return cmpM === "rk" ? rankOf(x, "d7") : x[cmpM] ?? null; };
-  const S = sel.map(i => ({ i, pts: hist.map(h => { const v = get(h, i.id); return v == null ? null : { t: h.t, v, x: rel ? (h.t - i.created) / 86400 : h.t }; }).filter(p => p && (!rel || p.x >= 0)) })).filter(s => s.pts.length);
+  const S = sel.map(i => ({ i, pts: (rel ? [{ t: i.created, v: 0, x: 0, start: true }] : []).concat(hist.map(h => { const v = get(h, i.id); return v == null ? null : { t: h.t, v, x: rel ? (h.t - i.created) / 86400 : h.t }; }).filter(p => p && (!rel || p.x > 0))) })).filter(s => s.pts.length > (rel ? 1 : 0));
   const el = document.getElementById("cmpChart"), leg = document.getElementById("cmpLeg");
   if (!S.length || S.every(s => s.pts.length < 2)) { el.innerHTML = `<p class="note" style="padding:30px 0;text-align:center">${sel.length ? "Pas encore assez de relevés pour cette mesure." : "Choisis au moins un addon ci-dessus."}</p>`; leg.innerHTML = ""; return; }
+  if (rel && cmpWin) S.forEach(s => { const out = [s.pts[0]]; for (let k = 1; k < s.pts.length; k++) { const p = s.pts[k], a = out[out.length - 1]; if (p.x <= cmpWin) { out.push(p); continue; } const f = (cmpWin - a.x) / (p.x - a.x); out.push({ t: a.t + (p.t - a.t) * f, v: a.v + (p.v - a.v) * f, x: cmpWin }); break; } s.pts = out; });
   const W = Math.max(320, Math.round(el.clientWidth || 1000)), H = W < 640 ? 260 : 340, L = W < 640 ? 42 : 60, R = W < 640 ? 10 : (S.length <= 5 ? 130 : 16), T = 16, B = 30;
   const allP = S.flatMap(s => s.pts), t0 = rel ? 0 : Math.min(...allP.map(p => p.x)), t1 = Math.max(...allP.map(p => p.x));
   let lo = Math.min(...allP.map(p => p.v)), hi = Math.max(...allP.map(p => p.v)); if (cmpM === "rk") { lo = Math.max(1, lo); } else { lo = Math.max(0, lo - (hi - lo) * .06); } if (hi === lo) hi = lo + 1;
@@ -777,42 +777,23 @@ function drawCmp() {
   ticks.forEach(v => { svg += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="13" fill="var(--muted)" font-family="Figtree">${inv ? "n° " + Math.round(v) : fmt(v)}</text>`; });
   svg += `<text x="${L}" y="${H - 8}" font-size="13" fill="var(--muted)" font-family="Figtree">${lab(t0)}</text><text x="${W - R}" y="${H - 8}" font-size="13" fill="var(--muted)" font-family="Figtree" text-anchor="end">${lab(t1)}</text>`;
   const ends = [];
-  S.forEach(s => { const col = colorOf(s.i.id), pts = s.pts.map(p => `${x(p.x).toFixed(1)},${y(p.v).toFixed(1)}`).join(" "), l = s.pts[s.pts.length - 1]; svg += `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="${S.length > 8 ? 2 : 2.8}" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${x(l.x)}" cy="${y(l.v)}" r="4.5" fill="${col}" stroke="var(--card)" stroke-width="2"/>`; ends.push({ s, yy: y(l.v), col }); });
+  S.forEach(s => { const col = colorOf(s.i.id), sol = rel && s.pts[0].start && s.pts[1] && s.pts[1].x > 0.25 ? s.pts.slice(1) : s.pts, dsh = sol !== s.pts ? `<line x1="${x(s.pts[0].x)}" y1="${y(s.pts[0].v)}" x2="${x(s.pts[1].x)}" y2="${y(s.pts[1].v)}" stroke="${col}" stroke-width="2" stroke-dasharray="4 5" opacity=".7"/>` : "", pts = sol.map(p => `${x(p.x).toFixed(1)},${y(p.v).toFixed(1)}`).join(" "), l = s.pts[s.pts.length - 1]; svg += dsh + `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="${S.length > 8 ? 2 : 2.8}" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${x(l.x)}" cy="${y(l.v)}" r="4.5" fill="${col}" stroke="var(--card)" stroke-width="2"/>`; ends.push({ s, yy: y(l.v), col }); });
   if (S.length <= 5 && W >= 640) { ends.sort((a, b) => a.yy - b.yy); let prevY = -99; ends.forEach(e => { const yy = Math.max(e.yy, prevY + 16); prevY = yy; svg += `<text x="${W - R + 10}" y="${yy + 4}" font-size="13" font-weight="700" fill="${e.col}" font-family="Figtree">${esc(nameOf(e.s.i).slice(0, 16))}</text>`; }); }
   svg += `<line id="cmpX" y1="${T}" y2="${H - B}" stroke="var(--muted)" visibility="hidden"/><rect id="cmpZ" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg>`;
   el.innerHTML = svg;
   const sv = el.querySelector("svg"), xl = sv.querySelector("#cmpX"), z = sv.querySelector("#cmpZ"), times = [...new Set(allP.map(p => p.x))].sort((a, b) => a - b);
   const near = (s, t) => { let bp = null, bd = Infinity; s.pts.forEach(p => { const d = Math.abs(p.x - t); if (d < bd) { bd = d; bp = p; } }); return bp && (rel ? bd <= 0.35 : bd === 0) ? bp : null; };
-  z.addEventListener("mousemove", e => { const r = sv.getBoundingClientRect(), mx = (e.clientX - r.left) / r.width * W; const t = times.reduce((a, b) => Math.abs(x(b) - mx) < Math.abs(x(a) - mx) ? b : a); xl.setAttribute("x1", x(t)); xl.setAttribute("x2", x(t)); xl.setAttribute("visibility", "visible"); const rows = S.map(s => ({ s, p: near(s, t) })).filter(r => r.p).sort((a, b) => inv ? a.p.v - b.p.v : b.p.v - a.p.v); showTip(e, `<b>${rel ? dayLabel(t) : D(t).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</b><br>${rows.map(r => `<span style="color:${colorOf(r.s.i.id)}">●</span> ${esc(nameOf(r.s.i))} : ${inv ? "n° " + r.p.v : fmt(r.p.v)}`).join("<br>")}`); });
+  const onMove = e => { const r = sv.getBoundingClientRect(), mx = (e.clientX - r.left) / r.width * W; const t = times.reduce((a, b) => Math.abs(x(b) - mx) < Math.abs(x(a) - mx) ? b : a); xl.setAttribute("x1", x(t)); xl.setAttribute("x2", x(t)); xl.setAttribute("visibility", "visible"); const rows = S.map(s => ({ s, p: near(s, t) })).filter(r => r.p).sort((a, b) => inv ? a.p.v - b.p.v : b.p.v - a.p.v); showTip(e, `<b>${rel ? dayLabel(t) : D(t).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</b><br>${rows.map(r => `<span style="color:${colorOf(r.s.i.id)}">●</span> ${esc(nameOf(r.s.i))} : ${inv ? "n° " + r.p.v : fmt(r.p.v)}`).join("<br>")}`); };
+  z.addEventListener("mousemove", onMove);
+  z.addEventListener("touchstart", e => onMove(e.touches[0]), { passive: true });
+  z.addEventListener("touchmove", e => onMove(e.touches[0]), { passive: true });
+  z.addEventListener("touchend", () => setTimeout(() => { hideTip(); xl.setAttribute("visibility", "hidden"); }, 2500));
   z.addEventListener("mouseleave", () => { hideTip(); xl.setAttribute("visibility", "hidden"); });
   leg.innerHTML = `<table><thead><tr><th>Addon</th><th>Abonnés</th><th>Aujourd'hui</th><th>Départs</th><th>Vues</th><th>Likes</th><th>Conversion</th><th>Rang semaine</th></tr></thead><tbody>${sel.map(i => { const g = gainIn(series("s", i.id), startOfDay(NOW), NOW), g2 = gainIn(series("ls", i.id), startOfDay(NOW), NOW), dep = g && g2 ? Math.max(0, Math.round(g2.v - g.v)) : null; const r7 = rankOf(i, "d7"); return `<tr><td><span class="dot" style="background:${colorOf(i.id)}"></span>${esc(nameOf(i))}</td><td class="num">${fmt(i.subs)}</td><td class="num up">${g && g.v > 0 ? "+" + fmt(g.v) : "—"}</td><td class="num down">${dep ? "−" + fmt(dep) : "—"}</td><td class="num">${fmt(i.views)}</td><td class="num">${i.likes != null ? fmt(i.likes) + " · " + Math.round(i.likes / Math.max(1, i.likes + i.dislikes) * 100) + " %" : "—"}</td><td class="num">${i.views ? Math.round(i.lifetimeSubs / i.views * 100) + " %" : "—"}</td><td class="num">${r7 ? "n° " + r7 : "—"}</td></tr>`; }).join("")}</tbody></table>`;
-  if (rel) leg.innerHTML += `<p class="note" style="margin-top:8px">Toutes les courbes démarrent à la sortie de leur addon. Un addon sorti avant le premier relevé de ce site commence à son premier relevé connu. Pour comparer les vrais premiers jours, regarde « Courbe de lancement ».</p>`;
+  if (rel) leg.innerHTML += `<p class="note" style="margin-top:8px">Toutes les courbes partent de zéro à la sortie de leur addon. En pointillés : début estimé, faute de relevé à ce moment-là (addon sorti avant le premier relevé de ce site). Pour comparer les vrais premiers jours, regarde « Courbe de lancement ».</p>`;
 }
-document.querySelectorAll("#cmpCard .cmp-quick button").forEach(b => b.addEventListener("click", () => { const q = b.dataset.q; cmpSel = new Set(q === "all" ? byRank.map(i => i.id) : q === "none" ? [] : q === "new" ? [...items].sort((a, b) => b.created - a.created).slice(0, 5).map(i => i.id) : byRank.slice(0, q === "top5" ? 5 : 3).map(i => i.id)); saveCmp(); drawCmp(); }));function drawRecords() {
-  const s = series("s"), out = [];
-  const today0 = startOfDay(NOW);
-  let bh = null;
-  for (let t = Math.ceil(T0 / 3600) * 3600; t + 3600 <= NOW + 1; t += 3600) { const g = bucketGain(s, t, t + 3600); if (g && g.v != null && !g.carried && g.cover > .9 && (!bh || g.v > bh.v)) bh = { v: g.v, t }; }
-  if (bh) out.push(["⚡", "Meilleure heure", `+${fmt(bh.v)}`, "abonnés gagnés", `${D(bh.t).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "short" })}, de ${D(bh.t).getHours()} h à ${D(bh.t + 3600).getHours()} h`, null, bh.t >= today0]);
-  let bd = null;
-  for (let d = startOfDay(T0); d <= NOW; d = addDays(d, 1)) { const g = gainIn(s, d, Math.min(addDays(d, 1), NOW)); if (g && (!bd || g.v > bd.v)) bd = { v: g.v, t: d, part: g.cover < .95 || addDays(d, 1) > NOW }; }
-  if (bd) out.push(["📅", "Meilleur jour", `+${fmt(bd.v)}`, "abonnés gagnés", `${D(bd.t).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}${bd.part ? " (journée pas encore complète)" : ""}`, null, bd.t >= today0]);
-  [["d1", "🔥", "Meilleure place du jour", "des tendances du jour"], ["d7", "🏅", "Meilleure place de la semaine", "des tendances de la semaine"], ["cw", "🗡️", "Meilleure place en Armes", "de la catégorie Armes"]].forEach(([k, ic, lab, sub]) => {
-    let b = null;
-    hist.forEach(h => h.items.forEach(x => { const r = rankOf(x, k); if (r && (!b || r < b.r || (r === b.r && h.t < b.t))) b = { r, t: h.t, id: x.id }; }));
-    if (b && byId[b.id]) out.push([ic, lab, `n° ${b.r}`, sub, `${D(b.t).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`, byId[b.id], b.t >= today0]);
-  });
-  const fast = [...items].map(i => ({ i, v: i.lifetimeSubs / Math.max(1, (NOW - i.created) / 86400) })).sort((a, b) => b.v - a.v)[0];
-  if (fast) out.push(["🚀", "Démarrage le plus rapide", `${fmt(fast.v)}/jour`, "abonnés depuis sa sortie", `sorti le ${D(fast.i.created).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`, fast.i, false]);
-  const byDay = {};
-  [].concat(DATA.comments || []).filter(c => !c.me).forEach(c => { const k = startOfDay(c.t); (byDay[k] = byDay[k] || []).push(c); });
-  const cd = Object.entries(byDay).sort((a, b) => b[1].length - a[1].length)[0];
-  if (cd) { const top = Object.entries(cd[1].reduce((m, c) => (m[c.a] = (m[c.a] || 0) + 1, m), {})).sort((a, b) => b[1] - a[1])[0]; out.push(["💬", "Jour le plus bavard", `${cd[1].length}`, "commentaires", `${D(+cd[0]).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}`, byId[top[0]], +cd[0] >= today0]); }
-  const nNew = out.filter(r => r[6]).length;
-  document.getElementById("recN").textContent = nNew ? `${nNew} record${nNew > 1 ? "s" : ""} aujourd'hui !` : `${out.length} records`;
-  document.getElementById("recN").className = nNew ? "badge" : "badge muted";
-  document.getElementById("recs").innerHTML = out.map(([ic, lab, v, unit, when, i, isNew]) => `<div class="rc${isNew ? " new" : ""}"><span class="ic">${ic}</span><div class="rx"><span class="lab">${lab}</span><b class="num">${v}</b><span class="u">${unit}</span>${i ? `<a class="who" href="${url(i.id)}" target="_blank" rel="noopener"><img src="${i.art}" alt="" loading="lazy">${esc(nameOf(i))}</a>` : ""}<span class="w">${when}</span>${isNew ? `<span class="nw">Nouveau record aujourd'hui !</span>` : ""}</div></div>`).join("");
-}const LNCOL = ["#6d5dfc", "#ff7a1a", "#0f9f62", "#e0434b", "#1f8fe0", "#c026d3", "#a16207", "#0891b2", "#be185d", "#4d7c0f", "#7c3aed", "#ea580c", "#0d9488", "#64748b", "#ca8a04", "#2563eb"];
+document.querySelectorAll("#cmpCard .cmp-quick button").forEach(b => b.addEventListener("click", () => { const q = b.dataset.q; cmpSel = new Set(q === "all" ? byRank.map(i => i.id) : q === "none" ? [] : q === "new" ? [...items].sort((a, b) => b.created - a.created).slice(0, 5).map(i => i.id) : byRank.slice(0, q === "top5" ? 5 : 3).map(i => i.id)); saveCmp(); drawCmp(); }));
+const LNCOL = ["#6d5dfc", "#ff7a1a", "#0f9f62", "#e0434b", "#1f8fe0", "#c026d3", "#a16207", "#0891b2", "#be185d", "#4d7c0f", "#7c3aed", "#ea580c", "#0d9488", "#64748b", "#ca8a04", "#2563eb"];
 function lnCandidates() {
   return [...items].filter(i => {
     if (NOW - i.created > 30 * 86400) return false;
@@ -995,7 +976,6 @@ if (matchMedia("(hover: hover)").matches && !matchMedia("(prefers-reduced-motion
   const still = im => { if (im.dataset.still) { im.src = im.dataset.still; delete im.dataset.still; } };
   document.addEventListener("mouseover", e => { const host = e.target.closest("a, button, .rank, .tr, .msg, .pr, .ad, .lk-r, .un, .rc"); const im = host ? host.querySelector("img") : e.target.tagName === "IMG" ? e.target : null; if (im && host !== document.body) { anim(im); (host || im).addEventListener("mouseleave", () => still(im), { once: true }); } });
 }render();
-drawRecords();
 drawWant();
 drawCmp();
 drawLaunch();
