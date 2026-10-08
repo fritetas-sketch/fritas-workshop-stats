@@ -331,6 +331,8 @@ html { scroll-behavior: smooth; }
 .stars { color: #f5b301; letter-spacing: 1px; font-size: 15px; white-space: nowrap; }
 .stars .off { color: var(--line); }
 .stars.none { color: var(--muted); font-size: 12px; letter-spacing: 0; }
+.rkr .g small.gn { color: var(--up); font-weight: 700; margin-top: 3px; }
+.rkr .g small.gn + small.dp { margin-top: 0; }
 .rkr .g small.dp { color: var(--down); font-weight: 700; margin-top: 3px; }
 .rk-more summary { cursor: pointer; font-weight: 700; color: var(--bar); padding: 10px 4px; list-style: none; }
 .rk-more summary::-webkit-details-marker { display: none; }
@@ -571,17 +573,17 @@ function starsHtml(i) {
   return "";
 }
 function drawRank(a, b, P) {
-  const rows = items.map(i => { const g = gainIn(series("ls", i.id), a, b), n = gainIn(series("s", i.id), a, b); return { i, g: g ? g.v : null, dep: g && n ? Math.max(0, Math.round(g.v - n.v)) : null }; })
-    .sort((x, y) => (y.g ?? -1e9) - (x.g ?? -1e9) || y.i.subs - x.i.subs);
+  const rows = items.map(i => { const g = gainIn(series("ls", i.id), a, b), n = gainIn(series("s", i.id), a, b); const dep = g && n ? Math.max(0, Math.round(g.v - n.v)) : null; return { i, g: g ? g.v : null, dep, net: g ? Math.round(g.v) - (dep || 0) : null }; })
+    .sort((x, y) => (y.net ?? -1e9) - (x.net ?? -1e9) || (y.g ?? -1e9) - (x.g ?? -1e9) || y.i.subs - x.i.subs);
   const wrap = document.getElementById("rkWrap");
   document.getElementById("rkT").textContent = `Classement ${P.lab}`;
   document.getElementById("rkLead").innerHTML = rows.some(r => r.g != null)
-    ? `Tes addons classés par nouveaux abonnés ${P.lab} (ceux qui se désabonnent ne sont pas retirés), avec leurs étoiles sur Steam. En rouge : les désabonnements ${P.lab}, <b>${fmt(rows.reduce((s, r) => s + (r.dep || 0), 0))}</b> en tout.`
+    ? `Tes addons classés par abonnés réels ${P.lab} : nouveaux abonnés moins ceux qui se sont désabonnés. En tout : <b>${sgn(rows.reduce((s, r) => s + (r.net || 0), 0))}</b> réels (<b>+${fmt(rows.reduce((s, r) => s + Math.max(0, Math.round(r.g || 0)), 0))}</b> gagnés, <b style="color:var(--down)">−${fmt(rows.reduce((s, r) => s + (r.dep || 0), 0))}</b> désabonnés). Avec leurs étoiles sur Steam.`
     : `Pas encore de relevé ${P.lab}. Le classement apparaît dès qu'il y a deux relevés.`;
   const row = (r, k) => {
     const i = r.i, has = i.likes != null, L = i.likes || 0, Dn = i.dislikes || 0, pc = L + Dn ? Math.round(L / (L + Dn) * 100) : null;
-    const dp = r.dep == null ? "" : `<small class="dp">${r.dep > 0 ? "−" + fmt(r.dep) + " désabonné" + (r.dep > 1 ? "s" : "") : "0 désabonné"}</small>`;
-    const gain = r.g == null ? `<span class="g z">—</span>` : Math.round(r.g) > 0 ? `<span class="g num">+${fmt(r.g)}<small>abonnés</small>${dp}</span>` : Math.round(r.g) < 0 ? `<span class="g num" style="color:var(--down)">${sgn(r.g)}<small>abonnés</small>${dp}</span>` : `<span class="g z num">0<small>abonnés</small>${dp}</span>`;
+    const dp = r.dep == null ? "" : `<small class="gn">+${fmt(Math.max(0, Math.round(r.g)))} gagnés</small><small class="dp">−${fmt(r.dep)} désabonné${r.dep > 1 ? "s" : ""}</small>`;
+    const gain = r.net == null ? `<span class="g z">—</span>` : r.net > 0 ? `<span class="g num">+${fmt(r.net)}<small>abonnés réels</small>${dp}</span>` : r.net < 0 ? `<span class="g num" style="color:var(--down)">${sgn(r.net)}<small>abonnés réels</small>${dp}</span>` : `<span class="g z num">0<small>abonnés réels</small>${dp}</span>`;
     const pos = k === 0 ? "🥇" : k === 1 ? "🥈" : k === 2 ? "🥉" : k + 1;
     const lk = starsHtml(i) + (has ? `<span>👍 <b class="num">${fmt(L)}</b></span><span class="dn">👎 <b class="num">${fmt(Dn)}</b></span>${pc != null ? `<span class="pc num">${pc} %</span>` : ""}` : `<span class="pc">Pas encore de votes</span>`);
     return `<a class="rkr${k < 3 ? " p" + (k + 1) : ""}" href="${url(i.id)}" target="_blank" rel="noopener"><span class="pos num">${pos}</span><img src="${i.art}" alt="" loading="lazy"><div class="mid"><span class="n">${esc(nameOf(i))}</span><div class="lk2">${lk}<span class="pc num">${fmt(i.subs)} abonnés en tout</span></div></div>${gain}</a>`;
