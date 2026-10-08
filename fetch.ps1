@@ -100,12 +100,18 @@ $thumbFile = Join-Path $dir 'thumbs_cache.json'
 $thumbs = @{}
 if (Test-Path $thumbFile) { (Get-Content $thumbFile -Raw -Encoding utf8 | ConvertFrom-Json).PSObject.Properties | ForEach-Object { $thumbs[$_.Name] = $_.Value } }
 
+$now = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+$refresh = @{}
+if ($Fast) {
+  $mine | Sort-Object { $cid = [string]$_.publishedfileid; if ($cache.ContainsKey($cid) -and $cache[$cid].u) { [long]$cache[$cid].u } else { 0 } } | Select-Object -First 4 | ForEach-Object { $refresh[[string]$_.publishedfileid] = $true }
+}
+
 $items = foreach ($d in $mine) {
   $rating = $null; $stars = $null; $comments = 0; $kind = 'item'
   $page = ''
-  if (-not $Fast) { try {
+  if (-not $Fast -or $refresh.ContainsKey([string]$d.publishedfileid)) { try {
     $page = ''
-    for ($try = 0; $try -lt 6 -and $page -notmatch '_totalcount"'; $try++) {
+    for ($try = 0; $try -lt $(if ($Fast) { 2 } else { 6 }) -and $page -notmatch '_totalcount"'; $try++) {
       if ($try) { Start-Sleep -Seconds (5 * $try) }
       try { $page = (Invoke-WebRequest -UseBasicParsing -Headers @{ 'Accept-Language' = 'en' } "https://steamcommunity.com/sharedfiles/filedetails/?id=$($d.publishedfileid)&l=english").Content } catch { $page = '' }
     }
@@ -115,8 +121,11 @@ $items = foreach ($d in $mine) {
     if ($page -match '_totalcount">\s*([\d,\.]+)') { $comments = [int]($Matches[1] -replace '[,\.]', '') }
   } catch {} }
   $key = [string]$d.publishedfileid
-  if ($page -match '_totalcount"') { $cache[$key] = [pscustomobject]@{ r = $rating; s = $stars; c = $comments } }
-  elseif ($cache.ContainsKey($key)) { $rating = $cache[$key].r; $stars = $cache[$key].s; $comments = $cache[$key].c }
+  if ($page -match '_totalcount"') { $cache[$key] = [pscustomobject]@{ r = $rating; s = $stars; c = $comments; u = $now } }
+  else {
+    if ($cache.ContainsKey($key)) { $rating = $cache[$key].r; $stars = $cache[$key].s; $comments = $cache[$key].c }
+    if ($refresh.ContainsKey($key)) { $cache[$key] = [pscustomobject]@{ r = $rating; s = $stars; c = $comments; u = $now } }
+  }
   $children = 0
   if ($colls.ContainsKey($d.publishedfileid)) { $kind = 'collection'; $children = $colls[$d.publishedfileid] }
   $thumb = $null
@@ -266,7 +275,7 @@ foreach ($u in @($cmts.Values | Where-Object { $_.u -ne $steamId } | ForEach-Obj
   $countries[$cc] = 1 + $(if ($countries.ContainsKey($cc)) { $countries[$cc] } else { 0 })
 }
 
-if (-not $Fast) { ($cache | ConvertTo-Json -Depth 4 -Compress) | Out-File $cacheFile -Encoding utf8 }
+($cache | ConvertTo-Json -Depth 4 -Compress) | Out-File $cacheFile -Encoding utf8
 ($thumbs | ConvertTo-Json -Compress) | Out-File $thumbFile -Encoding utf8
 ($mc | ConvertTo-Json -Compress) | Out-File $mcFile -Encoding utf8
 
