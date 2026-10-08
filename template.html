@@ -328,6 +328,9 @@ html { scroll-behavior: smooth; }
 .rkr .g { font: 800 28px/1 var(--f-d); color: var(--up); text-align: right; white-space: nowrap; }
 .rkr .g.z { color: var(--muted); }
 .rkr .g small { display: block; font: 600 12px var(--f-b); color: var(--muted); margin-top: 4px; }
+.stars { color: #f5b301; letter-spacing: 1px; font-size: 15px; white-space: nowrap; }
+.stars .off { color: var(--line); }
+.stars.none { color: var(--muted); font-size: 12px; letter-spacing: 0; }
 .rkr .g small.dp { color: var(--down); font-weight: 700; margin-top: 3px; }
 .rk-more summary { cursor: pointer; font-weight: 700; color: var(--bar); padding: 10px 4px; list-style: none; }
 .rk-more summary::-webkit-details-marker { display: none; }
@@ -562,20 +565,25 @@ function render() {
   document.getElementById("note").textContent = `Les chiffres viennent de l'API Steam, relevés automatiquement, plusieurs fois par heure, depuis le ${longWhen(T0)} (un relevé gardé par demi-heure). La page se met à jour toute seule quand un nouveau relevé arrive. Les abonnés gagnés sont bruts : ceux qui se désabonnent ne sont pas retirés. Quand il manque des relevés, les heures concernées sont hachurées et le gain est compté à la reprise.`;
 }
 
+function starsHtml(i) {
+  if (i.stars) return `<span class="stars" title="${i.stars} étoile${i.stars > 1 ? "s" : ""} sur 5 sur Steam${i.ratings ? ", " + fmt(i.ratings) + " notes" : ""}">${"★".repeat(i.stars)}<span class="off">${"★".repeat(5 - i.stars)}</span></span>`;
+  if ((i.likes || 0) + (i.dislikes || 0) < 25) return `<span class="stars none" title="Steam affiche les étoiles à partir d'environ 25 notes">pas encore d'étoiles</span>`;
+  return "";
+}
 function drawRank(a, b, P) {
   const rows = items.map(i => { const g = gainIn(series("ls", i.id), a, b), n = gainIn(series("s", i.id), a, b); return { i, g: g ? g.v : null, dep: g && n ? Math.max(0, Math.round(g.v - n.v)) : null }; })
     .sort((x, y) => (y.g ?? -1e9) - (x.g ?? -1e9) || y.i.subs - x.i.subs);
   const wrap = document.getElementById("rkWrap");
   document.getElementById("rkT").textContent = `Classement ${P.lab}`;
   document.getElementById("rkLead").innerHTML = rows.some(r => r.g != null)
-    ? `Tes addons classés par nouveaux abonnés ${P.lab} (ceux qui se désabonnent ne sont pas retirés). En rouge : les désabonnements ${P.lab}, <b>${fmt(rows.reduce((s, r) => s + (r.dep || 0), 0))}</b> en tout.`
+    ? `Tes addons classés par nouveaux abonnés ${P.lab} (ceux qui se désabonnent ne sont pas retirés), avec leurs étoiles sur Steam. En rouge : les désabonnements ${P.lab}, <b>${fmt(rows.reduce((s, r) => s + (r.dep || 0), 0))}</b> en tout.`
     : `Pas encore de relevé ${P.lab}. Le classement apparaît dès qu'il y a deux relevés.`;
   const row = (r, k) => {
     const i = r.i, has = i.likes != null, L = i.likes || 0, Dn = i.dislikes || 0, pc = L + Dn ? Math.round(L / (L + Dn) * 100) : null;
     const dp = r.dep == null ? "" : `<small class="dp">${r.dep > 0 ? "−" + fmt(r.dep) + " désabonné" + (r.dep > 1 ? "s" : "") : "0 désabonné"}</small>`;
     const gain = r.g == null ? `<span class="g z">—</span>` : Math.round(r.g) > 0 ? `<span class="g num">+${fmt(r.g)}<small>abonnés</small>${dp}</span>` : Math.round(r.g) < 0 ? `<span class="g num" style="color:var(--down)">${sgn(r.g)}<small>abonnés</small>${dp}</span>` : `<span class="g z num">0<small>abonnés</small>${dp}</span>`;
     const pos = k === 0 ? "🥇" : k === 1 ? "🥈" : k === 2 ? "🥉" : k + 1;
-    const lk = has ? `<span>👍 <b class="num">${fmt(L)}</b></span><span class="dn">👎 <b class="num">${fmt(Dn)}</b></span>${pc != null ? `<span class="pc num">${pc} %</span>` : ""}` : `<span class="pc">Pas encore de votes</span>`;
+    const lk = starsHtml(i) + (has ? `<span>👍 <b class="num">${fmt(L)}</b></span><span class="dn">👎 <b class="num">${fmt(Dn)}</b></span>${pc != null ? `<span class="pc num">${pc} %</span>` : ""}` : `<span class="pc">Pas encore de votes</span>`);
     return `<a class="rkr${k < 3 ? " p" + (k + 1) : ""}" href="${url(i.id)}" target="_blank" rel="noopener"><span class="pos num">${pos}</span><img src="${i.art}" alt="" loading="lazy"><div class="mid"><span class="n">${esc(nameOf(i))}</span><div class="lk2">${lk}<span class="pc num">${fmt(i.subs)} abonnés en tout</span></div></div>${gain}</a>`;
   };
   const SHOW = 5, first = rows.slice(0, SHOW), rest = rows.slice(SHOW);
@@ -714,7 +722,7 @@ function drawLikes(a, b) {  const P = PER[per], one = sel() ? byId[sel()] : null
   const max = Math.max(1, ...top.map(i => i.likes + i.dislikes));
   document.getElementById("likes").innerHTML = `<div class="lk-top">${donut(pct, 132)}<div class="lk-st">${stats.map(([i, v, l]) => `<div><i>${i}</i><b class="num">${v}</b><span>${l}</span></div>`).join("")}</div></div>
     ${ctaHtml(one ? one.id : null)}<h3 class="sub-t">Les plus aimés</h3>
-    <div class="lk-list">${top.map((i, k) => `<div class="lk-r${one && one.id === i.id ? " on" : ""}"><span class="p num">${k + 1}</span><img src="${i.art}" alt="" loading="lazy"><div style="min-width:0"><div class="n">${esc(nameOf(i))}</div><div class="bar2"><span class="g" style="width:${i.likes / max * 100}%"></span><span class="r" style="width:${i.dislikes / max * 100}%"></span></div></div><span class="v num">${fmt(i.likes)}<small>${Math.round(i.likes / (i.likes + i.dislikes) * 100)} %</small></span></div>`).join("")}</div>`;
+    <div class="lk-list">${top.map((i, k) => `<div class="lk-r${one && one.id === i.id ? " on" : ""}"><span class="p num">${k + 1}</span><img src="${i.art}" alt="" loading="lazy"><div style="min-width:0"><div class="n">${esc(nameOf(i))} ${i.stars ? starsHtml(i) : ""}</div><div class="bar2"><span class="g" style="width:${i.likes / max * 100}%"></span><span class="r" style="width:${i.dislikes / max * 100}%"></span></div></div><span class="v num">${fmt(i.likes)}<small>${Math.round(i.likes / (i.likes + i.dislikes) * 100)} %</small></span></div>`).join("")}</div>`;
 }const WANT = [["Deadpool", ["deadpool"]], ["Thor", ["thor"]], ["Venom", ["venom"]], ["Carnage", ["carnage"]], ["Ghost Rider", ["ghost rider", "ghostrider"]], ["Flash", ["the flash", "flash"]], ["Black Panther", ["black panther"]], ["Hawkeye", ["hawkeye"]], ["Black Widow", ["black widow"]], ["Ant-Man", ["ant-man", "antman", "ant man"]], ["Doctor Strange", ["doctor strange", "dr strange", "dr. strange"]], ["Scarlet Witch", ["scarlet witch", "wanda"]], ["Loki", ["loki"]], ["Thanos", ["thanos"]], ["Joker", ["joker"]], ["Harley Quinn", ["harley quinn", "harley"]], ["Catwoman", ["catwoman", "cat woman"]], ["Bane", ["bane"]], ["Robin", ["robin"]], ["Nightwing", ["nightwing"]], ["Red Hood", ["red hood"]], ["Scarecrow", ["scarecrow"]], ["Riddler", ["riddler"]], ["Green Lantern", ["green lantern"]], ["Aquaman", ["aquaman"]], ["Wonder Woman", ["wonder woman"]], ["Shazam", ["shazam"]], ["Black Adam", ["black adam"]], ["Darkseid", ["darkseid"]], ["Supergirl", ["supergirl"]], ["Batgirl", ["batgirl"]], ["Daredevil", ["daredevil"]], ["Punisher", ["punisher"]], ["Moon Knight", ["moon knight", "moonknight"]], ["Miles Morales", ["miles morales", "miles"]], ["Spider-Gwen", ["spider-gwen", "spider gwen", "spidergwen"]], ["Iron Spider", ["iron spider"]], ["Doctor Octopus", ["doc ock", "doctor octopus", "dr octopus", "doc oc"]], ["Vulture", ["vulture"]], ["Electro", ["electro"]], ["Mysterio", ["mysterio"]], ["Sandman", ["sandman"]], ["Lizard", ["lizard"]], ["Rhino", ["rhino"]], ["Kraven", ["kraven"]], ["Magneto", ["magneto"]], ["Cyclops", ["cyclops"]], ["Gambit", ["gambit"]], ["Deathstroke", ["deathstroke"]], ["Silver Surfer", ["silver surfer"]], ["Star-Lord", ["star-lord", "starlord", "star lord"]], ["Groot", ["groot"]], ["War Machine", ["war machine"]], ["Hulkbuster", ["hulkbuster", "hulk buster"]], ["Ultron", ["ultron"]], ["Vision", ["the vision"]], ["Homelander", ["homelander"]], ["Invincible", ["invincible"]], ["Omni-Man", ["omni-man", "omniman", "omni man"]], ["Godzilla", ["godzilla"]], ["King Kong", ["king kong"]], ["Predator", ["predator"]], ["Terminator", ["terminator"]], ["RoboCop", ["robocop"]], ["Kratos", ["kratos"]], ["Master Chief", ["master chief"]], ["Goku", ["goku"]], ["Naruto", ["naruto"]], ["Sonic", ["sonic"]], ["Ironheart", ["ironheart"]], ["She-Hulk", ["she-hulk", "she hulk", "shehulk"]], ["Red Hulk", ["red hulk"]], ["Abomination", ["abomination"]], ["Winter Soldier", ["winter soldier", "bucky"]], ["Falcon", ["falcon"]], ["Ant-Man", ["giant man"]]];
 const MADE_HIDDEN = ["thor", "thanos", "doctor octopus"];
 const madeTxt = items.map(i => i.title.toLowerCase()).concat(MADE_HIDDEN).join(" | ");
@@ -760,6 +768,7 @@ function drawCmp() {
   const st = document.getElementById("cmpStrip"), keep = st.scrollLeft;
   st.innerHTML = byRank.map(i => `<button type="button" data-id="${i.id}" aria-pressed="${cmpSel.has(i.id)}" style="--cc:${colorOf(i.id)}"><span class="av"><img src="${i.art}" alt="" loading="lazy"></span><span class="nm">${esc(nameOf(i))}</span></button>`).join("");
   st.scrollLeft = keep;
+  if (!st.dataset.done) { st.dataset.done = "1"; const first = st.querySelector('button[aria-pressed="true"]'); if (first) st.scrollLeft = Math.max(0, first.offsetLeft - st.offsetLeft - 8); }
   st.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { const id = b.dataset.id; cmpSel.has(id) ? cmpSel.delete(id) : cmpSel.add(id); saveCmp(); drawCmp(); }));
   const sel = byRank.filter(i => cmpSel.has(i.id));
   const get = (h, id) => { const x = h.items.find(y => y.id === id); if (!x) return null; return cmpM === "rk" ? rankOf(x, "d7") : x[cmpM] ?? null; };
@@ -767,20 +776,28 @@ function drawCmp() {
   const el = document.getElementById("cmpChart"), leg = document.getElementById("cmpLeg");
   if (!S.length || S.every(s => s.pts.length < 2)) { el.innerHTML = `<p class="note" style="padding:30px 0;text-align:center">${sel.length ? "Pas encore assez de relevés pour cette mesure." : "Choisis au moins un addon ci-dessus."}</p>`; leg.innerHTML = ""; return; }
   if (rel && cmpWin) S.forEach(s => { const out = [s.pts[0]]; for (let k = 1; k < s.pts.length; k++) { const p = s.pts[k], a = out[out.length - 1]; if (p.x <= cmpWin) { out.push(p); continue; } const f = (cmpWin - a.x) / (p.x - a.x); out.push({ t: a.t + (p.t - a.t) * f, v: a.v + (p.v - a.v) * f, x: cmpWin }); break; } s.pts = out; });
-  const W = Math.max(320, Math.round(el.clientWidth || 1000)), H = W < 640 ? 260 : 340, L = W < 640 ? 42 : 60, R = W < 640 ? 10 : (S.length <= 5 ? 130 : 16), T = 16, B = 30;
+  const W = Math.max(320, Math.round(el.clientWidth || 1000)), H = W < 640 ? 260 : 340, L = W < 640 ? 42 : 60, R = W < 640 ? 10 : (S.length <= 10 ? 190 : 16), T = 16, B = 30;
   const allP = S.flatMap(s => s.pts), t0 = rel ? 0 : Math.min(...allP.map(p => p.x)), t1 = Math.max(...allP.map(p => p.x));
   let lo = Math.min(...allP.map(p => p.v)), hi = Math.max(...allP.map(p => p.v)); if (cmpM === "rk") { lo = Math.max(1, lo); } else { lo = Math.max(0, lo - (hi - lo) * .06); } if (hi === lo) hi = lo + 1;
+  let step = 0;
+  if (cmpM !== "rk") { const r = (hi - lo) / 4, m = Math.pow(10, Math.floor(Math.log10(r))); step = [1, 2, 2.5, 5, 10].map(k => k * m).find(k => k >= r); lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step; }
   const inv = cmpM === "rk";
   const x = t => L + (t - t0) / (t1 - t0 || 1) * (W - L - R), y = v => inv ? T + (v - lo) / (hi - lo) * (H - T - B) : T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
   const dayLabel = d => d < 0.05 ? "Sortie" : "J+" + (Math.round(d * 10) / 10).toLocaleString("fr-FR");
   const lab = rel ? dayLabel : t => t1 - t0 < 2 * 86400 ? `${D(t).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} ${D(t).getHours()} h` : D(t).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-  const ticks = [0, .5, 1].map(f => lo + f * (hi - lo));
+  const ticks = step ? Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, k) => lo + k * step) : [0, .5, 1].map(f => lo + f * (hi - lo));
   let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Comparaison : ${CMPM[cmpM][0]}">`;
   ticks.forEach(v => { svg += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="13" fill="var(--muted)" font-family="Figtree">${inv ? "n° " + Math.round(v) : fmt(v)}</text>`; });
   svg += `<text x="${L}" y="${H - 8}" font-size="13" fill="var(--muted)" font-family="Figtree">${lab(t0)}</text><text x="${W - R}" y="${H - 8}" font-size="13" fill="var(--muted)" font-family="Figtree" text-anchor="end">${lab(t1)}</text>`;
   const ends = [];
-  S.forEach(s => { const col = colorOf(s.i.id), sol = rel && s.pts[0].start && s.pts[1] && s.pts[1].x > 0.25 ? s.pts.slice(1) : s.pts, dsh = sol !== s.pts ? `<line x1="${x(s.pts[0].x)}" y1="${y(s.pts[0].v)}" x2="${x(s.pts[1].x)}" y2="${y(s.pts[1].v)}" stroke="${col}" stroke-width="2" stroke-dasharray="4 5" opacity=".7"/>` : "", pts = sol.map(p => `${x(p.x).toFixed(1)},${y(p.v).toFixed(1)}`).join(" "), l = s.pts[s.pts.length - 1]; svg += dsh + `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="${S.length > 8 ? 2 : 2.8}" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${x(l.x)}" cy="${y(l.v)}" r="4.5" fill="${col}" stroke="var(--card)" stroke-width="2"/>`; ends.push({ s, yy: y(l.v), col }); });
-  if (S.length <= 5 && W >= 640) { ends.sort((a, b) => a.yy - b.yy); let prevY = -99; ends.forEach(e => { const yy = Math.max(e.yy, prevY + 16); prevY = yy; svg += `<text x="${W - R + 10}" y="${yy + 4}" font-size="13" font-weight="700" fill="${e.col}" font-family="Figtree">${esc(nameOf(e.s.i).slice(0, 16))}</text>`; }); }
+  S.forEach(s => { const col = colorOf(s.i.id), sol = rel && s.pts[0].start && s.pts[1] && s.pts[1].x > 0.25 ? s.pts.slice(1) : s.pts, dsh = sol !== s.pts ? `<line x1="${x(s.pts[0].x)}" y1="${y(s.pts[0].v)}" x2="${x(s.pts[1].x)}" y2="${y(s.pts[1].v)}" stroke="${col}" stroke-width="2" stroke-dasharray="4 5" opacity=".7"/>` : "", pts = sol.map(p => `${x(p.x).toFixed(1)},${y(p.v).toFixed(1)}`).join(" "), l = s.pts[s.pts.length - 1]; svg += dsh + `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="${S.length > 8 ? 2 : 2.8}" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${x(l.x)}" cy="${y(l.v)}" r="4.5" fill="${col}" stroke="var(--card)" stroke-width="2"/>`; ends.push({ s, yy: y(l.v), col, v: l.v }); });
+  if (S.length <= 10 && W >= 640) {
+    ends.sort((a, b) => a.yy - b.yy);
+    for (let k = 1; k < ends.length; k++) ends[k].yy = Math.max(ends[k].yy, ends[k - 1].yy + 17);
+    const over = ends.length ? ends[ends.length - 1].yy - (H - B) : 0;
+    if (over > 0) { ends[ends.length - 1].yy -= over; for (let k = ends.length - 2; k >= 0; k--) ends[k].yy = Math.min(ends[k].yy, ends[k + 1].yy - 17); }
+    ends.forEach(e => { svg += `<text x="${W - R + 12}" y="${e.yy + 4}" font-size="13" font-family="Figtree"><tspan font-weight="700" fill="${e.col}">${esc(nameOf(e.s.i).replace(/\s*\(.*?\)\s*/g, " ").trim())}</tspan><tspan fill="var(--muted)"> ${inv ? "n° " + e.v : fmt(e.v)}</tspan></text>`; });
+  }
   svg += `<line id="cmpX" y1="${T}" y2="${H - B}" stroke="var(--muted)" visibility="hidden"/><rect id="cmpZ" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg>`;
   el.innerHTML = svg;
   const sv = el.querySelector("svg"), xl = sv.querySelector("#cmpX"), z = sv.querySelector("#cmpZ"), times = [...new Set(allP.map(p => p.x))].sort((a, b) => a - b);
@@ -905,7 +922,7 @@ function drawLaunch() {
     const d = D(i.created), when = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) + " " + d.getHours() + " h";
     return `<tr><td><span class="dot" style="background:${LC(i.id)}"></span>${esc(nameOf(i))}</td><td class="num">${when}</td>${cols.map((c, k) => at(i, c, k)).join("")}<td class="num">${fmt(i.lifetimeSubs ?? i.subs)}</td></tr>`;
   }).join("");
-  leg.innerHTML = `<table><thead><tr><th>Addon</th><th>Sortie</th><th>J+1</th><th>J+3</th><th>J+7</th><th>Maintenant</th></tr></thead><tbody>${rows}</tbody></table><p class="note" style="margin-top:8px">En vert : le meilleur à cette étape. « ≈ » et pointillés : début estimé, le premier relevé de cet addon est arrivé plusieurs heures après sa sortie.</p>`;
+  leg.innerHTML = `<table><thead><tr><th>Addon</th><th>Sortie</th><th>J+1</th><th>J+3</th><th>J+7</th><th>Cumulés</th></tr></thead><tbody>${rows}</tbody></table><p class="note" style="margin-top:8px">En vert : le meilleur à cette étape. « ≈ » et pointillés : début estimé, le premier relevé de cet addon est arrivé plusieurs heures après sa sortie.</p>`;
 }
 function drawChart() {
   const P = PER[per], [lab, unitLab] = METRICS[metric], s = series(metric, sel()), one = sel() ? byId[sel()] : null;
