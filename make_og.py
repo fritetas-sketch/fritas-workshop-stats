@@ -15,7 +15,7 @@ rate = round(likes / (likes + dis) * 100) if likes + dis else None
 hist = sorted(data.get("history") or [], key=lambda h: h["t"])
 now = data["generated"]
 day0 = datetime.fromtimestamp(now).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
-tot = lambda h: sum((x.get("s") or 0) for x in h["items"] if x["id"] in keep)
+tot = lambda h: sum((x.get("ls") or 0) for x in h["items"] if x["id"] in keep)
 def at(t):
     pts = [(h["t"], tot(h)) for h in hist]
     if not pts or t < pts[0][0]:

@@ -429,7 +429,7 @@ const hist = [].concat(DATA.history || []).map(h => ({ t: h.t, items: [].concat(
 const NOW = DATA.generated, T0 = hist.length ? hist[0].t : NOW;
 
 const METRICS = {
-  s: ["Abonnés gagnés", "abonnés gagnés", "👥"],
+  ls: ["Abonnés gagnés", "abonnés gagnés", "👥"],
   v: ["Vues", "vues", "👀"],
   up: ["Likes", "likes", "👍"],
   f: ["Favoris", "favoris", "⭐"]
@@ -473,7 +473,7 @@ const PER = {
   month: { lab: "sur 30 jours", start: () => addDays(startOfDay(NOW), -29), end: () => NOW, buckets: () => Array.from({ length: 30 }, (_, k) => { const a = addDays(startOfDay(NOW), k - 29); return [a, addDays(a, 1), D(a).getDate() + ""]; }), unit: "jour", prev: "les 30 jours d'avant", prevRange: () => [addDays(startOfDay(NOW), -59), addDays(startOfDay(NOW), -29)] },
   all: { lab: "depuis le premier relevé", start: () => T0, end: () => NOW, buckets: () => { const s0 = startOfDay(T0), n = Math.max(1, Math.round((startOfDay(NOW) - s0) / 86400) + 1); if (n <= 2) { const out = []; for (let t = Math.floor(T0 / 3600) * 3600; t < NOW; t += 3600) out.push([t, t + 3600, D(t).getHours() + " h"]); return out; } return Array.from({ length: n }, (_, k) => { const a = addDays(s0, k); return [a, addDays(a, 1), dayLab(a)]; }); }, unit: "jour", prev: null }
 };
-let per = "day", metric = "s", who = "all";
+let per = "day", metric = "ls", who = "all";
 const sel = () => who === "all" ? null : who;
 try { const s = localStorage.getItem("fritasPer"); if (PER[s]) per = s; } catch (e) {}
 
@@ -514,15 +514,15 @@ function render() {
   const P = PER[per], a = P.start(), b = P.end();
   document.querySelectorAll("#periods button").forEach(x => x.setAttribute("aria-pressed", x.dataset.p === per ? "true" : "false"));
   const g = k => gainIn(series(k), a, b);
-  const gl = g("ls"), gs = g("s"), gv = g("v"), gu = g("up"), gf = g("f");
-  const perAddon = items.map(i => ({ i, g: gainIn(series("s", i.id), a, b)?.v ?? 0 })).sort((x, y) => y.g - x.g);
+  const gl = g("ls"), gs = g("ls"), gn = g("s"), gv = g("v"), gu = g("up"), gf = g("f");
+  const perAddon = items.map(i => ({ i, g: gainIn(series("ls", i.id), a, b)?.v ?? 0 })).sort((x, y) => y.g - x.g);
   const lead = perAddon[0];
   const covered = gl ? gl.hi - gl.lo : 0;
 
   document.getElementById("h1").innerHTML = gs && gs.v > 0 ? `<em class="num">+${fmt(gs.v)}</em> abonnés ${P.lab}.` : gs ? `<em class="num" style="color:var(--down)">${sgn(gs.v)}</em> abonnés ${P.lab}.` : `Pas encore de chiffres ${P.lab}.`;
-  const unsub = gl && gs ? Math.max(0, gl.v - gs.v) : 0;
+  const unsub = gl && gn ? Math.max(0, gl.v - gn.v) : 0;
   document.getElementById("h2").innerHTML = gl && gl.v > 0
-    ? `Gain net : <b>${fmt(gl.v)}</b> nouveaux moins <b>${fmt(unsub)}</b> départs. Soit un abonné de plus toutes les <b>${every(covered / Math.max(1, gs ? gs.v : gl.v))}</b>. ${lead && lead.g > 0 && gs && gs.v > 0 ? `<b>${esc(nameOf(lead.i))}</b> en ramène le plus (${Math.round(lead.g / gs.v * 100)} %).` : ""}`
+    ? `<b>${fmt(gl.v)}</b> nouveaux abonnés, sans retirer ceux qui se désabonnent (${fmt(unsub)} départs). Soit un nouvel abonné toutes les <b>${every(covered / Math.max(1, gs ? gs.v : gl.v))}</b>. ${lead && lead.g > 0 && gs && gs.v > 0 ? `<b>${esc(nameOf(lead.i))}</b> en ramène le plus (${Math.round(lead.g / gs.v * 100)} %).` : ""}`
     : `Le premier relevé date du ${longWhen(T0)}. Les chiffres arrivent tout seuls, au fil des relevés.`;
 
   const pr = P.prevRange ? P.prevRange() : null;
@@ -540,9 +540,9 @@ function render() {
   const gk = k => k === "up" && !upReady ? null : one ? gainIn(series(k, one.id), a, b) : g(k);
   const T = k => one ? (one[k] || 0) : tot(k);
   const K = [
-    ["👥", "Abonnés gagnés", gk("s"), "s", `${fmt(T("subs"))} abonnés en tout · désabonnements déduits`],
+    ["👥", "Abonnés gagnés", gk("ls"), "ls", `${fmt(T("subs"))} abonnés en tout · désabonnements non déduits`],
     ["👀", "Vues", gk("v"), "v", `${fmt(T("views"))} en tout`],
-    ["👍", "Likes", gk("up"), "up", (() => { const u = gk("up"), l = u ? gainIn(series("s", sel()), u.lo, u.hi) : null; return u && u.v > 0 && l && l.v > 0 ? `1 like pour ${fmt(l.v / u.v)} abonnés gagnés · ${fmt(T("likes"))} en tout` : `${fmt(T("likes"))} en tout, ${Math.round(T("likes") / Math.max(1, T("likes") + T("dislikes")) * 100)} % de likes`; })()],
+    ["👍", "Likes", gk("up"), "up", (() => { const u = gk("up"), l = u ? gainIn(series("ls", sel()), u.lo, u.hi) : null; return u && u.v > 0 && l && l.v > 0 ? `1 like pour ${fmt(l.v / u.v)} abonnés gagnés · ${fmt(T("likes"))} en tout` : `${fmt(T("likes"))} en tout, ${Math.round(T("likes") / Math.max(1, T("likes") + T("dislikes")) * 100)} % de likes`; })()],
     ["⭐", "Favoris", gk("f"), "f", `${fmt(T("favs"))} en tout`]
   ];
   const fo = document.getElementById("focus");
@@ -558,11 +558,11 @@ function render() {
 
   drawLikes(a, b);
 
-  document.getElementById("note").textContent = `Les chiffres viennent de l'API Steam, relevés automatiquement, plusieurs fois par heure, depuis le ${longWhen(T0)} (un relevé gardé par demi-heure). La page se met à jour toute seule quand un nouveau relevé arrive. Les gains sont nets : les désabonnements sont déduits. Quand il manque des relevés, les heures concernées sont hachurées et le gain est compté à la reprise.`;
+  document.getElementById("note").textContent = `Les chiffres viennent de l'API Steam, relevés automatiquement, plusieurs fois par heure, depuis le ${longWhen(T0)} (un relevé gardé par demi-heure). La page se met à jour toute seule quand un nouveau relevé arrive. Les abonnés gagnés sont bruts : ceux qui se désabonnent ne sont pas retirés. Quand il manque des relevés, les heures concernées sont hachurées et le gain est compté à la reprise.`;
 }
 
 function drawRank(a, b, P) {
-  const rows = items.map(i => { const g = gainIn(series("s", i.id), a, b); return { i, g: g ? g.v : null }; })
+  const rows = items.map(i => { const g = gainIn(series("ls", i.id), a, b); return { i, g: g ? g.v : null }; })
     .sort((x, y) => (y.g ?? -1e9) - (x.g ?? -1e9) || y.i.subs - x.i.subs);
   const wrap = document.getElementById("rkWrap");
   document.getElementById("rkT").textContent = `Classement ${P.lab}`;
@@ -686,7 +686,7 @@ function drawHeat() {
 }
 const CTA = 1791210000;
 function ctaFx(id) {
-  const u = series("up", id), s = series("s", id);
+  const u = series("up", id), s = series("ls", id);
   const w = (a, b) => { const gu = gainIn(u, a, b), gs = gainIn(s, a, b); if (!gu || !gs || gu.hi - gu.lo < 3600) return null; const days = (gu.hi - gu.lo) / 86400; return { l: gu.v, s: gs.v, days, r: gs.v > 0 ? gu.v / gs.v * 100 : null }; };
   return { b: w(CTA - 7 * 86400, CTA), a: w(CTA, NOW) };
 }
@@ -700,7 +700,7 @@ function drawLikes(a, b) {  const P = PER[per], one = sel() ? byId[sel()] : null
   const L = pool.reduce((s, i) => s + (i.likes || 0), 0), Dd = pool.reduce((s, i) => s + (i.dislikes || 0), 0);
   const pct = L + Dd ? Math.round(L / (L + Dd) * 100) : 0;
   const u = series("up", one ? one.id : null), ready = u.length > 1 && u[u.length - 1].t - u[0].t >= 1200;
-  const gu = ready ? gainIn(u, a, b) : null, gl = gu ? gainIn(series("s", one ? one.id : null), gu.lo, gu.hi) : null;
+  const gu = ready ? gainIn(u, a, b) : null, gl = gu ? gainIn(series("ls", one ? one.id : null), gu.lo, gu.hi) : null;
   document.getElementById("lkT").textContent = one ? `Les likes de ${nameOf(one)}` : "Les likes";
   document.getElementById("lkB").textContent = gu ? `${gu.v > 0 ? "+" : ""}${fmt(gu.v)} ${P.lab}` : `${fmt(L)} au total`;
   const stats = [
@@ -789,7 +789,7 @@ function drawCmp() {
   z.addEventListener("touchmove", e => onMove(e.touches[0]), { passive: true });
   z.addEventListener("touchend", () => setTimeout(() => { hideTip(); xl.setAttribute("visibility", "hidden"); }, 2500));
   z.addEventListener("mouseleave", () => { hideTip(); xl.setAttribute("visibility", "hidden"); });
-  leg.innerHTML = `<table><thead><tr><th>Addon</th><th>Abonnés</th><th>Aujourd'hui</th><th>Départs</th><th>Vues</th><th>Likes</th><th>Conversion</th><th>Rang semaine</th></tr></thead><tbody>${sel.map(i => { const g = gainIn(series("s", i.id), startOfDay(NOW), NOW), g2 = gainIn(series("ls", i.id), startOfDay(NOW), NOW), dep = g && g2 ? Math.max(0, Math.round(g2.v - g.v)) : null; const r7 = rankOf(i, "d7"); return `<tr><td><span class="dot" style="background:${colorOf(i.id)}"></span>${esc(nameOf(i))}</td><td class="num">${fmt(i.subs)}</td><td class="num up">${g && g.v > 0 ? "+" + fmt(g.v) : "—"}</td><td class="num down">${dep ? "−" + fmt(dep) : "—"}</td><td class="num">${fmt(i.views)}</td><td class="num">${i.likes != null ? fmt(i.likes) + " · " + Math.round(i.likes / Math.max(1, i.likes + i.dislikes) * 100) + " %" : "—"}</td><td class="num">${i.views ? Math.round(i.lifetimeSubs / i.views * 100) + " %" : "—"}</td><td class="num">${r7 ? "n° " + r7 : "—"}</td></tr>`; }).join("")}</tbody></table>`;
+  leg.innerHTML = `<table><thead><tr><th>Addon</th><th>Abonnés</th><th>Aujourd'hui</th><th>Départs</th><th>Vues</th><th>Likes</th><th>Conversion</th><th>Rang semaine</th></tr></thead><tbody>${sel.map(i => { const g = gainIn(series("s", i.id), startOfDay(NOW), NOW), g2 = gainIn(series("ls", i.id), startOfDay(NOW), NOW), dep = g && g2 ? Math.max(0, Math.round(g2.v - g.v)) : null; const r7 = rankOf(i, "d7"); return `<tr><td><span class="dot" style="background:${colorOf(i.id)}"></span>${esc(nameOf(i))}</td><td class="num">${fmt(i.subs)}</td><td class="num up">${g2 && g2.v > 0 ? "+" + fmt(g2.v) : "—"}</td><td class="num down">${dep ? "−" + fmt(dep) : "—"}</td><td class="num">${fmt(i.views)}</td><td class="num">${i.likes != null ? fmt(i.likes) + " · " + Math.round(i.likes / Math.max(1, i.likes + i.dislikes) * 100) + " %" : "—"}</td><td class="num">${i.views ? Math.round(i.lifetimeSubs / i.views * 100) + " %" : "—"}</td><td class="num">${r7 ? "n° " + r7 : "—"}</td></tr>`; }).join("")}</tbody></table>`;
   if (rel) leg.innerHTML += `<p class="note" style="margin-top:8px">Toutes les courbes partent de zéro à la sortie de leur addon. En pointillés : début estimé, faute de relevé à ce moment-là (addon sorti avant le premier relevé de ce site). Pour comparer les vrais premiers jours, regarde « Courbe de lancement ».</p>`;
 }
 document.querySelectorAll("#cmpCard .cmp-quick button").forEach(b => b.addEventListener("click", () => { const q = b.dataset.q; cmpSel = new Set(q === "all" ? byRank.map(i => i.id) : q === "none" ? [] : q === "new" ? [...items].sort((a, b) => b.created - a.created).slice(0, 5).map(i => i.id) : byRank.slice(0, q === "top5" ? 5 : 3).map(i => i.id)); saveCmp(); drawCmp(); }));
@@ -797,7 +797,7 @@ const LNCOL = ["#6d5dfc", "#ff7a1a", "#0f9f62", "#e0434b", "#1f8fe0", "#c026d3",
 function lnCandidates() {
   return [...items].filter(i => {
     if (NOW - i.created > 30 * 86400) return false;
-    const first = series("s", i.id).find(p => p.t > i.created);
+    const first = series("ls", i.id).find(p => p.t > i.created);
     return first && first.t - i.created <= 48 * 3600;
   }).sort((a, b) => b.created - a.created);
 }
@@ -819,7 +819,7 @@ const LN = { d1: ["24 h", 1], d3: ["3 jours", 3], d7: ["7 jours", 7], d14: ["14 
 let lnK = "d3";
 try { const s = localStorage.getItem("fritasLn"); if (LN[s]) lnK = s; } catch (e) {}
 function launchPts(i) {
-  const s = series("s", i.id);
+  const s = series("ls", i.id);
   return [{ t: i.created, v: 0, start: true }, ...s.filter(p => p.t > i.created)];
 }
 function valAt(pts, t) {
@@ -901,7 +901,7 @@ function drawLaunch() {
   document.getElementById("lnLead").innerHTML = j1.length ? `${base} Meilleur premier jour : <b>${esc(short(j1[0].i))}</b> avec <b>${fmt(j1[0].v.v)}</b> abonnés à J+1.` : base;
   const rows = rec.map(i => {
     const d = D(i.created), when = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) + " " + d.getHours() + " h";
-    return `<tr><td><span class="dot" style="background:${LC(i.id)}"></span>${esc(nameOf(i))}</td><td class="num">${when}</td>${cols.map((c, k) => at(i, c, k)).join("")}<td class="num">${fmt(i.subs)}</td></tr>`;
+    return `<tr><td><span class="dot" style="background:${LC(i.id)}"></span>${esc(nameOf(i))}</td><td class="num">${when}</td>${cols.map((c, k) => at(i, c, k)).join("")}<td class="num">${fmt(i.lifetimeSubs ?? i.subs)}</td></tr>`;
   }).join("");
   leg.innerHTML = `<table><thead><tr><th>Addon</th><th>Sortie</th><th>J+1</th><th>J+3</th><th>J+7</th><th>Maintenant</th></tr></thead><tbody>${rows}</tbody></table><p class="note" style="margin-top:8px">En vert : le meilleur à cette étape. « ≈ » et pointillés : début estimé, le premier relevé de cet addon est arrivé plusieurs heures après sa sortie.</p>`;
 }
