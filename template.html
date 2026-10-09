@@ -76,6 +76,15 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .strip .gn.z { color: var(--muted); font-weight: 600; }
 .strip button[aria-pressed="true"] .av { box-shadow: 0 0 0 3px var(--card), 0 0 0 6px var(--bar); transform: scale(1.04); }
 .strip button[aria-pressed="true"] .nm { color: var(--ink); }
+.pfo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 14px 18px; border-radius: 16px; background: var(--card); box-shadow: 0 0 0 1px var(--line); color: var(--ink-2); text-decoration: none; font-weight: 600; }
+.pfo:hover { box-shadow: 0 0 0 2px var(--bar); }
+.pfo .ic { font-size: 22px; }
+.pfo b { font: 800 26px/1 var(--f-d); color: var(--ink); }
+.pfo .d { padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: 14px; background: var(--line); color: var(--muted); }
+.pfo .d.up { background: var(--up-bg); color: var(--up); }
+.pfo .d.down { background: var(--down-bg); color: var(--down); }
+.pfo .go { margin-left: auto; color: var(--bar); font-weight: 700; font-size: 14px; }
+@media (max-width: 640px) { .pfo .go { margin-left: 0; width: 100%; } }
 .focus { margin: -6px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-weight: 600; color: var(--ink-2); }
 .focus button { cursor: pointer; border: 0; background: var(--ink); color: var(--card); padding: 6px 12px; border-radius: 999px; font: 700 13px var(--f-b); }
 .focus a { color: var(--bar); font-weight: 700; text-decoration: none; }
@@ -376,6 +385,7 @@ html { scroll-behavior: smooth; }
     <button type="button" data-p="all"><span class="lg">Depuis le début</span><span class="sm">Tout</span></button>
   </div>
 
+  <a class="pfo" id="pfo" target="_blank" rel="noopener" hidden></a>
   <p class="focus" id="focus" hidden></p>
   <section class="kpis" id="kpis" aria-label="Chiffres de la période"></section>
 
@@ -431,11 +441,11 @@ const addDays = (t, n) => { const d = D(t); d.setDate(d.getDate() + n); return d
 const items = DATA.items.filter(i => i.kind !== "collection").map(i => ({ ...i, gif: i.media || i.cover || i.thumb, art: i.media && /\.gif$/i.test(i.media) ? i.media.replace(/\.gif$/i, "_t.jpg") : (i.media || i.cover || i.thumb) }));
 const keep = new Set(items.map(i => i.id));
 const byId = Object.fromEntries(items.map(i => [i.id, i]));
-const hist = [].concat(DATA.history || []).map(h => ({ t: h.t, items: [].concat(h.items || []).filter(x => keep.has(x.id)) })).sort((a, b) => a.t - b.t);
+const hist = [].concat(DATA.history || []).map(h => ({ t: h.t, fo: h.fo, items: [].concat(h.items || []).filter(x => keep.has(x.id)) })).sort((a, b) => a.t - b.t);
 const NOW = DATA.generated, T0 = hist.length ? hist[0].t : NOW;
 
 const METRICS = {
-  s: ["Abonnés", "abonnés (désabonnés déduits)", "👥"],
+  ls: ["Abonnés gagnés", "abonnés gagnés", "👥"],
   v: ["Vues", "vues", "👀"],
   up: ["Likes", "likes", "👍"],
   f: ["Favoris", "favoris", "⭐"]
@@ -479,7 +489,7 @@ const PER = {
   month: { lab: "sur 30 jours", start: () => addDays(startOfDay(NOW), -29), end: () => NOW, buckets: () => Array.from({ length: 30 }, (_, k) => { const a = addDays(startOfDay(NOW), k - 29); return [a, addDays(a, 1), D(a).getDate() + ""]; }), unit: "jour", prev: "les 30 jours d'avant", prevRange: () => [addDays(startOfDay(NOW), -59), addDays(startOfDay(NOW), -29)] },
   all: { lab: "depuis le premier relevé", start: () => T0, end: () => NOW, buckets: () => { const s0 = startOfDay(T0), n = Math.max(1, Math.round((startOfDay(NOW) - s0) / 86400) + 1); if (n <= 2) { const out = []; for (let t = Math.floor(T0 / 3600) * 3600; t < NOW; t += 3600) out.push([t, t + 3600, D(t).getHours() + " h"]); return out; } return Array.from({ length: n }, (_, k) => { const a = addDays(s0, k); return [a, addDays(a, 1), dayLab(a)]; }); }, unit: "jour", prev: null }
 };
-let per = "day", metric = "s", who = "all";
+let per = "day", metric = "ls", who = "all";
 const sel = () => who === "all" ? null : who;
 try { const s = localStorage.getItem("fritasPer"); if (PER[s]) per = s; } catch (e) {}
 
@@ -520,15 +530,15 @@ function render() {
   const P = PER[per], a = P.start(), b = P.end();
   document.querySelectorAll("#periods button").forEach(x => x.setAttribute("aria-pressed", x.dataset.p === per ? "true" : "false"));
   const g = k => gainIn(series(k), a, b);
-  const gl = g("ls"), gs = g("s"), gn = g("s"), gv = g("v"), gu = g("up"), gf = g("f");
-  const perAddon = items.map(i => ({ i, g: gainIn(series("s", i.id), a, b)?.v ?? 0 })).sort((x, y) => y.g - x.g);
+  const gl = g("ls"), gs = g("ls"), gn = g("s"), gv = g("v"), gu = g("up"), gf = g("f");
+  const perAddon = items.map(i => ({ i, g: gainIn(series("ls", i.id), a, b)?.v ?? 0 })).sort((x, y) => y.g - x.g);
   const lead = perAddon[0];
-  const covered = gs ? gs.hi - gs.lo : 0;
+  const covered = gl ? gl.hi - gl.lo : 0;
 
   document.getElementById("h1").innerHTML = gs && gs.v > 0 ? `<em class="num">+${fmt(gs.v)}</em> abonnés ${P.lab}.` : gs ? `<em class="num" style="color:var(--down)">${sgn(gs.v)}</em> abonnés ${P.lab}.` : `Pas encore de chiffres ${P.lab}.`;
   const unsub = gl && gn ? Math.max(0, gl.v - gn.v) : 0;
-  document.getElementById("h2").innerHTML = gs && gl && gl.v > 0
-    ? `<b>${sgn(gs.v)}</b> abonnés, désabonnements déduits : <b>+${fmt(gl.v)}</b> nouveaux moins <b style="color:var(--down)">${fmt(unsub)}</b> départs.${gs.v > 0 ? ` Soit un abonné de plus toutes les <b>${every(covered / gs.v)}</b>.` : ""} ${lead && lead.g > 0 && gs.v > 0 ? `<b>${esc(nameOf(lead.i))}</b> en ramène le plus (${Math.round(lead.g / gs.v * 100)} %).` : ""}`
+  document.getElementById("h2").innerHTML = gl && gl.v > 0
+    ? `<b>${fmt(gl.v)}</b> nouveaux abonnés, sans retirer ceux qui se désabonnent (${fmt(unsub)} départs). Soit un nouvel abonné toutes les <b>${every(covered / Math.max(1, gs ? gs.v : gl.v))}</b>. ${lead && lead.g > 0 && gs && gs.v > 0 ? `<b>${esc(nameOf(lead.i))}</b> en ramène le plus (${Math.round(lead.g / gs.v * 100)} %).` : ""}`
     : `Le premier relevé date du ${longWhen(T0)}. Les chiffres arrivent tout seuls, au fil des relevés.`;
 
   const pr = P.prevRange ? P.prevRange() : null;
@@ -546,11 +556,18 @@ function render() {
   const gk = k => k === "up" && !upReady ? null : one ? gainIn(series(k, one.id), a, b) : g(k);
   const T = k => one ? (one[k] || 0) : tot(k);
   const K = [
-    ["👥", "Abonnés", gk("s"), "s", `${fmt(T("subs"))} abonnés en tout · désabonnements déduits`],
+    ["👥", "Abonnés gagnés", gk("ls"), "ls", `${fmt(T("subs"))} abonnés en tout · désabonnements non déduits`],
     ["👀", "Vues", gk("v"), "v", `${fmt(T("views"))} en tout`],
-    ["👍", "Likes", gk("up"), "up", (() => { const u = gk("up"), l = u ? gainIn(series("s", sel()), u.lo, u.hi) : null; return u && u.v > 0 && l && l.v > 0 ? `1 like pour ${fmt(l.v / u.v)} abonnés · ${fmt(T("likes"))} en tout` : `${fmt(T("likes"))} en tout, ${Math.round(T("likes") / Math.max(1, T("likes") + T("dislikes")) * 100)} % de likes`; })()],
+    ["👍", "Likes", gk("up"), "up", (() => { const u = gk("up"), l = u ? gainIn(series("ls", sel()), u.lo, u.hi) : null; return u && u.v > 0 && l && l.v > 0 ? `1 like pour ${fmt(l.v / u.v)} abonnés gagnés · ${fmt(T("likes"))} en tout` : `${fmt(T("likes"))} en tout, ${Math.round(T("likes") / Math.max(1, T("likes") + T("dislikes")) * 100)} % de likes`; })()],
     ["⭐", "Favoris", gk("f"), "f", `${fmt(T("favs"))} en tout`]
   ];
+  const pf = document.getElementById("pfo");
+  if (DATA.followers != null) {
+    const fs = hist.filter(h => h.fo != null).map(h => ({ t: h.t, v: h.fo })), fg = gainIn(fs, a, b), fv = fg ? Math.round(fg.v) : null;
+    pf.hidden = false;
+    pf.href = `https://steamcommunity.com/profiles/${DATA.steamId}/myworkshopfiles/?appid=4000`;
+    pf.innerHTML = `<span class="ic">👤</span><b class="num">${fmt(DATA.followers)}</b><span>abonné${DATA.followers > 1 ? "s" : ""} à ton profil Workshop</span>${fv == null ? `<span class="d">${P.lab} : il faut 2 relevés</span>` : `<span class="d ${fv > 0 ? "up" : fv < 0 ? "down" : ""}">${fv > 0 ? "+" : ""}${fmt(fv)} ${P.lab}</span>`}<span class="go">Voir le profil ↗</span>`;
+  }
   const fo = document.getElementById("focus");
   fo.hidden = !one;
   if (one) { fo.innerHTML = `<span>Chiffres de <b>${esc(nameOf(one))}</b> uniquement</span><button type="button" id="clearWho">Revenir à tous les addons</button><a href="${url(one.id)}" target="_blank" rel="noopener">Voir sur Steam ↗</a>`; document.getElementById("clearWho").addEventListener("click", () => setWho("all")); }
@@ -564,7 +581,7 @@ function render() {
 
   drawLikes(a, b);
 
-  document.getElementById("note").textContent = `Les chiffres viennent de l'API Steam, relevés automatiquement, plusieurs fois par heure, depuis le ${longWhen(T0)} (un relevé gardé par demi-heure). La page se met à jour toute seule quand un nouveau relevé arrive. Les abonnés sont toujours comptés désabonnements déduits, sur tous les relevés. Quand il manque des relevés, les heures concernées sont hachurées et le gain est compté à la reprise.`;
+  document.getElementById("note").textContent = `Les chiffres viennent de l'API Steam, relevés automatiquement, plusieurs fois par heure, depuis le ${longWhen(T0)} (un relevé gardé par demi-heure). La page se met à jour toute seule quand un nouveau relevé arrive. Les abonnés gagnés sont bruts : ceux qui se désabonnent ne sont pas retirés. Quand il manque des relevés, les heures concernées sont hachurées et le gain est compté à la reprise.`;
 }
 
 function starsHtml(i) {
@@ -680,25 +697,25 @@ function drawChat() {
   } catch (e) { el.hidden = true; }
 }
 function drawHeat() {
-  const s = series("s"); const el = document.getElementById("heat");
+  const s = series("ls"); const el = document.getElementById("heat");
   if (s.length < 2) { el.innerHTML = `<p class="note">La grille se remplit au fil des relevés.</p>`; return; }
   const sum = {}, cnt = {};
   for (let t = Math.ceil(s[0].t / 3600) * 3600; t + 3600 <= s[s.length - 1].t; t += 3600) {
     const g = bucketGain(s, t, t + 3600); if (!g || g.v == null || g.carried) continue;
     const d = D(t), k = ((d.getDay() + 6) % 7) + "-" + d.getHours();
-    sum[k] = (sum[k] || 0) + g.v; cnt[k] = (cnt[k] || 0) + 1;
+    sum[k] = (sum[k] || 0) + Math.max(0, g.v); cnt[k] = (cnt[k] || 0) + 1;
   }
   const avg = Object.fromEntries(Object.keys(sum).map(k => [k, sum[k] / cnt[k]]));
   const mx = Math.max(1, ...Object.values(avg));
   const days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-  el.innerHTML = `<table><thead><tr><th></th>${Array.from({ length: 24 }, (_, h) => `<th>${h % 3 ? "" : h + " h"}</th>`).join("")}</tr></thead><tbody>${days.map((dn, d) => `<tr><th>${dn}</th>${Array.from({ length: 24 }, (_, h) => { const v = avg[d + "-" + h]; return v == null ? `<td title="${dn} ${h} h : pas encore relevé"></td>` : `<td class="v" style="--p:${(Math.max(0, v) / mx).toFixed(2)}" title="${dn} ${h} h : ${sgn(v)} abonnés en moyenne, désabonnés déduits"></td>`; }).join("")}</tr>`).join("")}</tbody></table><div class="scale"><span>peu</span><i></i><span>beaucoup (${fmt(mx)} par heure)</span></div>`;
+  el.innerHTML = `<table><thead><tr><th></th>${Array.from({ length: 24 }, (_, h) => `<th>${h % 3 ? "" : h + " h"}</th>`).join("")}</tr></thead><tbody>${days.map((dn, d) => `<tr><th>${dn}</th>${Array.from({ length: 24 }, (_, h) => { const v = avg[d + "-" + h]; return v == null ? `<td title="${dn} ${h} h : pas encore relevé"></td>` : `<td class="v" style="--p:${(v / mx).toFixed(2)}" title="${dn} ${h} h : ${fmt(v)} nouveaux abonnés en moyenne"></td>`; }).join("")}</tr>`).join("")}</tbody></table><div class="scale"><span>peu</span><i></i><span>beaucoup (${fmt(mx)} par heure)</span></div>`;
 }function donut(p, size) {
   const r = size / 2 - 9, C = 2 * Math.PI * r, on = C * p / 100;
   return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${p} % de likes"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--down)" stroke-width="14"/><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--up)" stroke-width="14" stroke-dasharray="${on} ${C}" transform="rotate(-90 ${size / 2} ${size / 2})"/><text x="50%" y="48%" text-anchor="middle" dominant-baseline="middle" font-family="Bricolage Grotesque, sans-serif" font-weight="800" font-size="${size * .24}" fill="var(--ink)">${p} %</text><text x="50%" y="68%" text-anchor="middle" font-family="Figtree, sans-serif" font-size="${size * .095}" fill="var(--muted)">de likes</text></svg>`;
 }
 const CTA = 1791210000;
 function ctaFx(id) {
-  const u = series("up", id), s = series("s", id);
+  const u = series("up", id), s = series("ls", id);
   const w = (a, b) => { const gu = gainIn(u, a, b), gs = gainIn(s, a, b); if (!gu || !gs || gu.hi - gu.lo < 3600) return null; const days = (gu.hi - gu.lo) / 86400; return { l: gu.v, s: gs.v, days, r: gs.v > 0 ? gu.v / gs.v * 100 : null }; };
   return { b: w(CTA - 7 * 86400, CTA), a: w(CTA, NOW) };
 }
@@ -706,19 +723,19 @@ function ctaHtml(id) {
   const fx = ctaFx(id), n1 = v => v.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
   let verdict = `GIF « Like, partage, commente » ajouté en tête des descriptions le 5 octobre à ${D(CTA).getHours()} h. Verdict après 24 h de relevés.`;
   if (fx.a && fx.b && fx.a.days >= 1 && fx.a.r != null && fx.b.r) { const d = Math.round((fx.a.r / fx.b.r - 1) * 100); verdict = d > 0 ? `Depuis le GIF, <b>+${d} %</b> de likes pour chaque nouvel abonné. Ça marche.` : d < 0 ? `Depuis le GIF, <b>${d} %</b> de likes pour chaque nouvel abonné. Pas d'effet visible pour l'instant.` : "Depuis le GIF, autant de likes par nouvel abonné qu'avant."; }
-  return `<h3 class="sub-t">Effet du GIF « Like »</h3><div class="fx">${[["Avant le GIF", fx.b], ["Depuis le GIF", fx.a]].map(([t, x]) => `<div><span>${t}</span><b class="num">${x && x.r != null ? n1(x.r) : "—"}</b><span>likes pour 100 abonnés</span><small>${x ? `${n1(x.l / x.days)} likes par jour` : "en attente de relevés"}</small></div>`).join("")}</div><p class="note" style="margin:0 0 16px">${verdict}</p>`;
+  return `<h3 class="sub-t">Effet du GIF « Like »</h3><div class="fx">${[["Avant le GIF", fx.b], ["Depuis le GIF", fx.a]].map(([t, x]) => `<div><span>${t}</span><b class="num">${x && x.r != null ? n1(x.r) : "—"}</b><span>likes pour 100 abonnés gagnés</span><small>${x ? `${n1(x.l / x.days)} likes par jour` : "en attente de relevés"}</small></div>`).join("")}</div><p class="note" style="margin:0 0 16px">${verdict}</p>`;
 }
 function drawLikes(a, b) {  const P = PER[per], one = sel() ? byId[sel()] : null, pool = one ? [one] : items;
   const L = pool.reduce((s, i) => s + (i.likes || 0), 0), Dd = pool.reduce((s, i) => s + (i.dislikes || 0), 0);
   const pct = L + Dd ? Math.round(L / (L + Dd) * 100) : 0;
   const u = series("up", one ? one.id : null), ready = u.length > 1 && u[u.length - 1].t - u[0].t >= 1200;
-  const gu = ready ? gainIn(u, a, b) : null, gl = gu ? gainIn(series("s", one ? one.id : null), gu.lo, gu.hi) : null;
+  const gu = ready ? gainIn(u, a, b) : null, gl = gu ? gainIn(series("ls", one ? one.id : null), gu.lo, gu.hi) : null;
   document.getElementById("lkT").textContent = one ? `Les likes de ${nameOf(one)}` : "Les likes";
   document.getElementById("lkB").textContent = gu ? `${gu.v > 0 ? "+" : ""}${fmt(gu.v)} ${P.lab}` : `${fmt(L)} au total`;
   const stats = [
     ["👍", fmt(L), "likes"],
     ["👎", fmt(Dd), "dislikes"],
-    gu && gu.v > 0 && gl && gl.v > 0 ? ["🎯", `1 pour ${fmt(gl.v / gu.v)}`, "abonnés"] : ["🎯", Dd ? `${fmt(L / Dd)} pour 1` : "Aucun", Dd ? "likes par dislike" : "dislike"]
+    gu && gu.v > 0 && gl && gl.v > 0 ? ["🎯", `1 pour ${fmt(gl.v / gu.v)}`, "abonnés gagnés"] : ["🎯", Dd ? `${fmt(L / Dd)} pour 1` : "Aucun", Dd ? "likes par dislike" : "dislike"]
   ];
   const top = items.filter(i => (i.likes || 0) + (i.dislikes || 0) > 0).sort((x, y) => y.likes - x.likes).slice(0, 5);
   const max = Math.max(1, ...top.map(i => i.likes + i.dislikes));
@@ -749,7 +766,7 @@ function drawWant() {
   document.getElementById("want").innerHTML = list.slice(0, 10).map((x, k) => `<details class="wt"><summary><span class="p num">${k + 1}</span><span class="n">${esc(x.n)}</span><span class="bar"><span style="width:${x.k / max * 100}%"></span></span><b class="num">${x.k} joueur${x.k > 1 ? "s" : ""}</b></summary><div class="wq">${x.msgs.slice(0, 4).map(m => `<p><span class="who">${esc(m.n)}</span> sur <a href="${url(m.a)}" target="_blank" rel="noopener">${esc(nameOf(byId[m.a]))}</a> · ${ago(m.t)}<br>« ${esc(m.x.length > 220 ? m.x.slice(0, 220) + "…" : m.x)} »</p>`).join("")}</div></details>`).join("");
 }
 const CMPCOL = ["#6d5dfc", "#ff7a1a", "#0f9f62", "#e0434b", "#1f8fe0", "#c026d3", "#ca8a04", "#0891b2", "#be185d", "#4d7c0f"];
-const CMPM = { s: ["Abonnés", "abonnés"], v: ["Vues", "vues"], up: ["Likes", "likes"], rk: ["Rang (semaine)", "rang"] };
+const CMPM = { s: ["Abonnés", "abonnés"], ls: ["Abonnés cumulés", "abonnés cumulés"], v: ["Vues", "vues"], up: ["Likes", "likes"], rk: ["Rang (semaine)", "rang"] };
 const byRank = [...items].sort((a, b) => b.subs - a.subs);
 const cmpCol = {};
 const colorOf = id => cmpCol[id] || "#9aa3b5";
@@ -810,7 +827,7 @@ function drawCmp() {
   z.addEventListener("touchmove", e => onMove(e.touches[0]), { passive: true });
   z.addEventListener("touchend", () => setTimeout(() => { hideTip(); xl.setAttribute("visibility", "hidden"); }, 2500));
   z.addEventListener("mouseleave", () => { hideTip(); xl.setAttribute("visibility", "hidden"); });
-  leg.innerHTML = `<table><thead><tr><th>Addon</th><th>Abonnés</th><th>Aujourd'hui</th><th>Départs</th><th>Vues</th><th>Likes</th><th>Conversion</th><th>Rang semaine</th></tr></thead><tbody>${sel.map(i => { const g = gainIn(series("s", i.id), startOfDay(NOW), NOW), g2 = gainIn(series("ls", i.id), startOfDay(NOW), NOW), dep = g && g2 ? Math.max(0, Math.round(g2.v - g.v)) : null; const r7 = rankOf(i, "d7"); return `<tr><td><span class="dot" style="background:${colorOf(i.id)}"></span>${esc(nameOf(i))}</td><td class="num">${fmt(i.subs)}</td><td class="num ${g && g.v < 0 ? "down" : "up"}">${g && Math.round(g.v) !== 0 ? sgn(g.v) : "—"}</td><td class="num down">${dep ? "−" + fmt(dep) : "—"}</td><td class="num">${fmt(i.views)}</td><td class="num">${i.likes != null ? fmt(i.likes) + " · " + Math.round(i.likes / Math.max(1, i.likes + i.dislikes) * 100) + " %" : "—"}</td><td class="num">${i.views ? Math.round(i.subs / i.views * 100) + " %" : "—"}</td><td class="num">${r7 ? "n° " + r7 : "—"}</td></tr>`; }).join("")}</tbody></table>`;
+  leg.innerHTML = `<table><thead><tr><th>Addon</th><th>Abonnés</th><th>Aujourd'hui</th><th>Départs</th><th>Vues</th><th>Likes</th><th>Conversion</th><th>Rang semaine</th></tr></thead><tbody>${sel.map(i => { const g = gainIn(series("s", i.id), startOfDay(NOW), NOW), g2 = gainIn(series("ls", i.id), startOfDay(NOW), NOW), dep = g && g2 ? Math.max(0, Math.round(g2.v - g.v)) : null; const r7 = rankOf(i, "d7"); return `<tr><td><span class="dot" style="background:${colorOf(i.id)}"></span>${esc(nameOf(i))}</td><td class="num">${fmt(i.subs)}</td><td class="num up">${g2 && g2.v > 0 ? "+" + fmt(g2.v) : "—"}</td><td class="num down">${dep ? "−" + fmt(dep) : "—"}</td><td class="num">${fmt(i.views)}</td><td class="num">${i.likes != null ? fmt(i.likes) + " · " + Math.round(i.likes / Math.max(1, i.likes + i.dislikes) * 100) + " %" : "—"}</td><td class="num">${i.views ? Math.round(i.lifetimeSubs / i.views * 100) + " %" : "—"}</td><td class="num">${r7 ? "n° " + r7 : "—"}</td></tr>`; }).join("")}</tbody></table>`;
   if (rel) leg.innerHTML += `<p class="note" style="margin-top:8px">Toutes les courbes partent de zéro à la sortie de leur addon. En pointillés : début estimé, faute de relevé à ce moment-là (addon sorti avant le premier relevé de ce site). Pour comparer les vrais premiers jours, regarde « Courbe de lancement ».</p>`;
 }
 document.querySelectorAll("#cmpCard .cmp-quick button").forEach(b => b.addEventListener("click", () => { const q = b.dataset.q; cmpSel = new Set(q === "all" ? byRank.map(i => i.id) : q === "none" ? [] : q === "new" ? [...items].sort((a, b) => b.created - a.created).slice(0, 5).map(i => i.id) : byRank.slice(0, q === "top5" ? 5 : 3).map(i => i.id)); saveCmp(); drawCmp(); }));
@@ -818,7 +835,7 @@ const LNCOL = ["#6d5dfc", "#ff7a1a", "#0f9f62", "#e0434b", "#1f8fe0", "#c026d3",
 function lnCandidates() {
   return [...items].filter(i => {
     if (NOW - i.created > 30 * 86400) return false;
-    const first = series("s", i.id).find(p => p.t > i.created);
+    const first = series("ls", i.id).find(p => p.t > i.created);
     return first && first.t - i.created <= 48 * 3600;
   }).sort((a, b) => b.created - a.created);
 }
@@ -840,7 +857,7 @@ const LN = { d1: ["24 h", 1], d3: ["3 jours", 3], d7: ["7 jours", 7], d14: ["14 
 let lnK = "d3";
 try { const s = localStorage.getItem("fritasLn"); if (LN[s]) lnK = s; } catch (e) {}
 function launchPts(i) {
-  const s = series("s", i.id);
+  const s = series("ls", i.id);
   return [{ t: i.created, v: 0, start: true }, ...s.filter(p => p.t > i.created)];
 }
 function valAt(pts, t) {
@@ -922,9 +939,9 @@ function drawLaunch() {
   document.getElementById("lnLead").innerHTML = j1.length ? `${base} Meilleur premier jour : <b>${esc(short(j1[0].i))}</b> avec <b>${fmt(j1[0].v.v)}</b> abonnés à J+1.` : base;
   const rows = rec.map(i => {
     const d = D(i.created), when = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) + " " + d.getHours() + " h";
-    return `<tr><td><span class="dot" style="background:${LC(i.id)}"></span>${esc(nameOf(i))}</td><td class="num">${when}</td>${cols.map((c, k) => at(i, c, k)).join("")}<td class="num">${fmt(i.subs)}</td></tr>`;
+    return `<tr><td><span class="dot" style="background:${LC(i.id)}"></span>${esc(nameOf(i))}</td><td class="num">${when}</td>${cols.map((c, k) => at(i, c, k)).join("")}<td class="num">${fmt(i.lifetimeSubs ?? i.subs)}</td></tr>`;
   }).join("");
-  leg.innerHTML = `<table><thead><tr><th>Addon</th><th>Sortie</th><th>J+1</th><th>J+3</th><th>J+7</th><th>Maintenant</th></tr></thead><tbody>${rows}</tbody></table><p class="note" style="margin-top:8px">En vert : le meilleur à cette étape. « ≈ » et pointillés : début estimé, le premier relevé de cet addon est arrivé plusieurs heures après sa sortie.</p>`;
+  leg.innerHTML = `<table><thead><tr><th>Addon</th><th>Sortie</th><th>J+1</th><th>J+3</th><th>J+7</th><th>Cumulés</th></tr></thead><tbody>${rows}</tbody></table><p class="note" style="margin-top:8px">En vert : le meilleur à cette étape. « ≈ » et pointillés : début estimé, le premier relevé de cet addon est arrivé plusieurs heures après sa sortie.</p>`;
 }
 function drawChart() {
   const P = PER[per], [lab, unitLab] = METRICS[metric], s = series(metric, sel()), one = sel() ? byId[sel()] : null;
@@ -932,7 +949,7 @@ function drawChart() {
   drawStrip(P, s);
   const B = P.buckets().map(([x, y, l]) => {
     const g = bucketGain(s, x, y);
-    return { a: x, b: y, l, v: g && g.v != null ? Math.max(0, g.v) : null, r: g && g.v != null ? g.v : null, gap: !!(g && g.v == null && g.gap), carried: g && g.carried > 0 ? g.carried : 0, part: g && g.v != null ? g.cover < .98 && !g.carried : false, now: x <= NOW && NOW < y };
+    return { a: x, b: y, l, v: g && g.v != null ? Math.max(0, g.v) : null, gap: !!(g && g.v == null && g.gap), carried: g && g.carried > 0 ? g.carried : 0, part: g && g.v != null ? g.cover < .98 && !g.carried : false, now: x <= NOW && NOW < y };
   });
   const have = B.filter(x => x.v != null);
   const best = have.filter(x => !x.carried).reduce((m, x) => x.v > (m?.v ?? -1) ? x : m, null);
@@ -963,7 +980,7 @@ function drawChart() {
   el.querySelectorAll("g.col").forEach(g => {
     const x = B[+g.dataset.k];
     const when = P.unit === "heure" ? `${x.l} – ${(+x.l.split(" ")[0] + 1) % 24} h` : D(x.a).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-    const html = x.gap ? `<b>${when}</b><br>Pas de relevé (PC éteint)<br>Les abonnés de cette période sont comptés à la reprise` : x.v == null ? `<b>${when}</b><br>Pas encore relevé` : x.carried ? `<b>${when}</b><br>+${fmt(x.v)} ${unitLab}<br>Dont ${fmt(x.carried)} accumulés pendant la coupure` : `<b>${when}</b><br>${sgn(x.r)} ${unitLab}${x.now ? "<br>En cours" : x.part ? "<br>Relevé partiel" : ""}`;
+    const html = x.gap ? `<b>${when}</b><br>Pas de relevé (PC éteint)<br>Les abonnés de cette période sont comptés à la reprise` : x.v == null ? `<b>${when}</b><br>Pas encore relevé` : x.carried ? `<b>${when}</b><br>+${fmt(x.v)} ${unitLab}<br>Dont ${fmt(x.carried)} accumulés pendant la coupure` : `<b>${when}</b><br>${x.v > 0 ? "+" : ""}${fmt(x.v)} ${unitLab}${x.now ? "<br>En cours" : x.part ? "<br>Relevé partiel" : ""}`;
     g.addEventListener("mouseenter", e => showTip(e, html));
     g.addEventListener("mousemove", e => showTip(e, html));
     g.addEventListener("mouseleave", hideTip);
