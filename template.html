@@ -49,7 +49,7 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .periods button[aria-pressed="true"] { background: var(--ink); color: var(--card); }
 
 .card { background: var(--card); border-radius: 20px; box-shadow: 0 0 0 1px var(--line); padding: 22px 24px; min-width: 0; }
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
 .kpi { display: grid; gap: 4px; align-content: start; }
 .kpi .l { font: 700 12px/1.2 var(--f-b); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
 .kpi .spark { display: block; width: 100%; height: 34px; margin: 6px 0 2px; }
@@ -57,7 +57,7 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .kpi .spark rect.neg { fill: var(--down); }
 .kpi .spark rect.now { fill: var(--hot); }
 .kpi .spark line { stroke: var(--line); }
-.kpi .v { font: 800 clamp(34px, 4.6vw, 48px)/1 var(--f-d); letter-spacing: -.02em; }
+.kpi .v { font: 800 clamp(30px, 3.6vw, 44px)/1 var(--f-d); letter-spacing: -.02em; }
 .kpi .v.pos { color: var(--up); }
 .kpi .v.wait { color: var(--muted); font-size: clamp(26px, 3.4vw, 34px); }
 .kpi .s { font-size: 14px; color: var(--muted); }
@@ -65,7 +65,7 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .cmp.up { background: var(--up-bg); color: var(--up); }
 .cmp.down { background: var(--down-bg); color: var(--down); }
 .cmp.na { background: var(--bg); color: var(--muted); font-weight: 600; }
-@media (max-width: 820px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .card { padding: 18px; } }
+@media (max-width: 820px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi:last-child { grid-column: 1 / -1; } .card { padding: 18px; } }
 
 .ch-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 10px; }
 .ch-h h2 { font: 800 24px/1.1 var(--f-d); }
@@ -473,7 +473,8 @@ const METRICS = {
   s: ["Abonnés", "abonnés", "👥"],
   v: ["Vues", "vues", "👀"],
   up: ["Likes", "likes", "👍"],
-  f: ["Favoris", "favoris", "⭐"]
+  f: ["Favoris", "favoris", "⭐"],
+  c: ["Commentaires", "commentaires", "💬"]
 };
 function series(k, id) {
   return hist.map(h => {
@@ -584,7 +585,8 @@ function render() {
     ["", "Abonnés", gk("s"), "s", `${fmt(T("subs"))} abonnés en tout · désabonnements déduits`],
     ["", "Vues", gk("v"), "v", `${fmt(T("views"))} en tout`],
     ["", "Likes", gk("up"), "up", (() => { const u = gk("up"), l = u ? gainIn(series("s", sel()), u.lo, u.hi) : null; return u && u.v > 0 && l && l.v > 0 ? `1 like pour ${fmt(l.v / u.v)} abonnés · ${fmt(T("likes"))} en tout` : `${fmt(T("likes"))} en tout, ${Math.round(T("likes") / Math.max(1, T("likes") + T("dislikes")) * 100)} % de likes`; })()],
-    ["", "Favoris", gk("f"), "f", `${fmt(T("favs"))} en tout`]
+    ["", "Favoris", gk("f"), "f", `${fmt(T("favs"))} en tout`],
+    ["", "Commentaires", gk("c"), "c", `${fmt(T("comments"))} en tout`]
   ];
   const pf = document.getElementById("pfo");
   if (DATA.followers != null) {
