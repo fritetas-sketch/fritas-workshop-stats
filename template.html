@@ -44,6 +44,8 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .periods button { cursor: pointer; border: 0; background: transparent; padding: 8px 13px; border-radius: 9px; font: 700 14px/1 var(--f-b); color: var(--ink-2); white-space: nowrap; }
 .periods button:hover { background: var(--bg); color: var(--ink); }
 .periods .sm { display: none; }
+.groups { flex-wrap: wrap; margin: 0 0 14px; width: fit-content; max-width: 100%; }
+.groups .gn { opacity: .55; font-weight: 600; margin-left: 2px; }
 .periods button[aria-pressed="true"] { background: var(--ink); color: var(--card); }
 
 .card { background: var(--card); border-radius: 20px; box-shadow: 0 0 0 1px var(--line); padding: 22px 24px; min-width: 0; }
@@ -314,6 +316,7 @@ html { scroll-behavior: smooth; }
   .toc { width: 100%; flex-basis: 100%; }
   .periods .lg { display: none; }
   .periods .sm { display: inline; }
+  .groups button { flex: 1 0 auto; padding: 9px 10px; }
   .heat { overflow: visible; }
   .heat table { min-width: 0; border-spacing: 2px; }
   .heat th:first-child { width: 30px; }
@@ -391,6 +394,8 @@ html { scroll-behavior: smooth; }
   <nav class="toc" aria-label="Sommaire"><a href="#secRank">Classement</a><a href="#chartCard">Graphique</a><a href="#cmpCard">Comparer</a><a href="#secTrend">Tendances</a><a href="#secChat">Commentaires</a><a href="#secWant">Réclamations</a><a href="#secLaunch">Lancement</a><a href="#secLikes">Likes</a><a href="#secMap">Carte</a><a href="#secHeat">Heures</a></nav>
   </div>
 
+  <div class="periods groups" role="group" aria-label="Groupe d'addons" id="groups"></div>
+
   <a class="pfo" id="pfo" target="_blank" rel="noopener" hidden></a>
   <p class="focus" id="focus" hidden></p>
   <section class="kpis" id="kpis" aria-label="Chiffres de la période"></section>
@@ -444,7 +449,21 @@ const longWhen = t => D(t).toLocaleString("fr-FR", { weekday: "long", day: "nume
 const startOfDay = t => { const d = D(t); d.setHours(0, 0, 0, 0); return d.getTime() / 1000; };
 const addDays = (t, n) => { const d = D(t); d.setDate(d.getDate() + n); return d.getTime() / 1000; };
 
-const items = DATA.items.filter(i => i.kind !== "collection").map(i => ({ ...i, gif: i.media || i.cover || i.thumb, art: i.media && /\.gif$/i.test(i.media) ? i.media.replace(/\.gif$/i, "_t.jpg") : (i.media || i.cover || i.thumb) }));
+const GROUPS = [
+  ["all", "Tous", () => true],
+  ["heros", "Super-héros", i => i.tags.includes("Weapon") && !/Gadgets|Weapons|Shark Strike|Aerowing/i.test(i.title)],
+  ["st", "Stranger Things", i => /Stranger Things/i.test(i.title)],
+  ["veh", "Véhicules", i => i.tags.includes("Vehicle")],
+  ["pm", "Playermodels", i => i.tags.includes("Model") && !/Stranger Things/i.test(i.title)],
+  ["arm", "Armes & gadgets", i => /Gadgets|Weapons|Shark Strike|Aerowing/i.test(i.title)]
+];
+const allItems = DATA.items.filter(i => i.kind !== "collection").map(i => ({ ...i, tags: [].concat(i.tags || []) }));
+let grp = "all";
+try { const s = new URLSearchParams(location.search).get("g") || localStorage.getItem("fritasGrp"); if (GROUPS.some(g => g[0] === s)) grp = s; } catch (e) {}
+const grpFn = GROUPS.find(g => g[0] === grp)[2];
+document.getElementById("groups").innerHTML = GROUPS.map(([k, lab, f]) => { const n = allItems.filter(f).length; return n ? `<button type="button" data-g="${k}" aria-pressed="${k === grp}">${lab} <span class="gn">${n}</span></button>` : ""; }).join("");
+document.querySelectorAll("#groups button").forEach(b => b.addEventListener("click", () => { if (b.dataset.g === grp) return; try { localStorage.setItem("fritasGrp", b.dataset.g); sessionStorage.setItem("fritasScroll", String(scrollY)); } catch (e) {} location.replace(location.pathname + "?g=" + b.dataset.g + location.hash); }));
+const items = allItems.filter(grpFn).map(i => ({ ...i, gif: i.media || i.cover || i.thumb, art: i.media && /\.gif$/i.test(i.media) ? i.media.replace(/\.gif$/i, "_t.jpg") : (i.media || i.cover || i.thumb) }));
 const keep = new Set(items.map(i => i.id));
 const byId = Object.fromEntries(items.map(i => [i.id, i]));
 const hist = [].concat(DATA.history || []).map(h => ({ t: h.t, fo: h.fo, items: [].concat(h.items || []).filter(x => keep.has(x.id)) })).sort((a, b) => a.t - b.t);
