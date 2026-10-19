@@ -230,6 +230,7 @@ foreach ($it in @($items | Where-Object { $_.kind -eq 'item' })) {
   try {
     $r = Invoke-RestMethod "https://steamcommunity.com/comment/PublishedFile_Public/render/$steamId/$($it.id)/?start=0&count=50"
     if ($r.success) {
+      if ($null -ne $r.total_count) { $it.comments = [int]$r.total_count }
       foreach ($m in $rx.Matches([string]$r.comments_html)) {
         $txt = $m.Groups[5].Value -replace '(?i)<br\s*/?>', "`n" -replace '<img[^>]*alt="([^"]*)"[^>]*>', '$1' -replace '<[^>]+>', ''
         $txt = [System.Net.WebUtility]::HtmlDecode($txt).Trim()
