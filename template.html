@@ -61,6 +61,7 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .kpi .v.pos { color: var(--up); }
 .kpi .v.wait { color: var(--muted); font-size: clamp(26px, 3.4vw, 34px); }
 .kpi .s { font-size: 14px; color: var(--muted); }
+.pnote { display: block; margin-top: 6px; font-size: 14px; color: var(--muted); }
 .cmp { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 13px; padding: 3px 8px; border-radius: 10px; width: fit-content; max-width: 100%; }
 .cmp.up { background: var(--up-bg); color: var(--up); }
 .cmp.down { background: var(--down-bg); color: var(--down); }
@@ -476,12 +477,39 @@ const METRICS = {
   f: ["Favoris", "favoris", "⭐"],
   c: ["Commentaires", "commentaires", "💬"]
 };
-function series(k, id) {
+function rawSeries(k, id) {
   return hist.map(h => {
     if (id) { const x = h.items.find(y => y.id === id); return x && x[k] != null ? { t: h.t, v: x[k] } : null; }
     const vals = h.items.filter(x => x[k] != null);
     return vals.length ? { t: h.t, v: vals.reduce((a, x) => a + x[k], 0), n: vals.length } : null;
   }).filter(Boolean);
+}
+const PAUSE = 36 * 3600;
+const PAUSES = hist.slice(1).map((h, i) => [hist[i].t, h.t]).filter(([x, y]) => y - x > PAUSE);
+function series(k, id) {
+  const out = [], last = new Map();
+  let acc = 0, pt = null;
+  for (const h of hist) {
+    const cur = h.items.filter(x => (!id || x.id === id) && x[k] != null);
+    if (!cur.length) continue;
+    const pause = pt != null && h.t - pt > PAUSE;
+    for (const x of cur) {
+      if (pt == null) acc += x[k];
+      else if (last.has(x.id)) { if (!pause) acc += x[k] - last.get(x.id); }
+      else if (!pause && (byId[x.id]?.created || 0) > pt - 86400) acc += x[k];
+      last.set(x.id, x[k]);
+    }
+    out.push({ t: h.t, v: acc, n: cur.length });
+    pt = h.t;
+  }
+  return out;
+}
+const pauseIn = (a, b) => PAUSES.reduce((n, [x, y]) => n + Math.max(0, Math.min(b, y) - Math.max(a, x)), 0);
+function pauseNote(k, id, a, b) {
+  const r = rawSeries(k, id), ps = PAUSES.filter(([x, y]) => y > a && x < b);
+  if (!ps.length) return "";
+  const f = t => D(t).toLocaleString("fr-FR", { day: "numeric", month: "short" });
+  return ps.map(([x, y]) => { const p = r.find(q => q.t === x), q = r.find(q => q.t === y), d = p && q ? q.v - p.v : null; return `<span class="pnote">Relevés en pause du ${f(x)} au ${f(y)}${d ? ` : <b class="num" style="color:var(--${d < 0 ? "down" : "up"})">${sgn(d)}</b> abonnés pendant la pause, non comptés dans les périodes` : ""}.</span>`; }).join(" ");
 }
 function at(s, t) {
   if (!s.length || t < s[0].t || t > s[s.length - 1].t) return null;
@@ -505,7 +533,7 @@ function gainIn(s, a, b) {
   if (!s.length) return null;
   const lo = Math.max(a, s[0].t), hi = Math.min(b, s[s.length - 1].t);
   if (hi <= lo) return null;
-  return { v: at(s, hi) - at(s, lo), cover: (hi - lo) / (b - a), lo, hi };
+  return { v: at(s, hi) - at(s, lo), cover: (hi - lo - pauseIn(lo, hi)) / (b - a), lo, hi };
 }
 
 const PER = {
@@ -559,13 +587,14 @@ function render() {
   const gl = g("ls"), gs = g("s"), gn = g("s"), gv = g("v"), gu = g("up"), gf = g("f");
   const perAddon = items.map(i => ({ i, g: gainIn(series("s", i.id), a, b)?.v ?? 0 })).sort((x, y) => y.g - x.g);
   const lead = perAddon[0];
-  const covered = gl ? gl.hi - gl.lo : 0;
+  const covered = gl ? gl.hi - gl.lo - pauseIn(gl.lo, gl.hi) : 0;
 
   document.getElementById("h1").innerHTML = gs && gs.v > 0 ? `<em class="num">+${fmt(gs.v)}</em> abonnés ${P.lab}.` : gs ? `<em class="num" style="color:var(--down)">${sgn(gs.v)}</em> abonnés ${P.lab}.` : `Pas encore de chiffres ${P.lab}.`;
-  const unsub = gl && gn ? Math.max(0, gl.v - gn.v) : 0;
+  const unsub = gl && gn ? Math.max(0, gl.v - gn.v) : 0, back = gl && gn ? Math.max(0, gn.v - gl.v) : 0;
   document.getElementById("h2").innerHTML = gl && gs && gl.v > 0
-    ? `Vrais chiffres : <b>+${fmt(gl.v)}</b> nouveaux abonnés moins <b style="color:var(--down)">${fmt(unsub)}</b> désabonnements. ${gs.v > 0 ? `Soit un abonné de plus toutes les <b>${every(covered / gs.v)}</b>. ` : ""}${lead && lead.g > 0 && gs.v > 0 ? `<b>${esc(nameOf(lead.i))}</b> en ramène le plus (${Math.round(lead.g / gs.v * 100)} %).` : ""}`
+    ? `Vrais chiffres : <b>+${fmt(gl.v)}</b> nouveaux abonnés ${back > 0 ? `et <b>+${fmt(back)}</b> anciens abonnés revenus` : `moins <b style="color:var(--down)">${fmt(unsub)}</b> désabonnements`}. ${gs.v > 0 ? `Soit un abonné de plus toutes les <b>${every(covered / gs.v)}</b>. ` : ""}${lead && lead.g > 0 && gs.v > 0 ? `<b>${esc(nameOf(lead.i))}</b> en ramène le plus (${Math.round(lead.g / gs.v * 100)} %).` : ""}`
     : `Le premier relevé date du ${longWhen(T0)}. Les chiffres arrivent tout seuls, au fil des relevés.`;
+  document.getElementById("h2").insertAdjacentHTML("beforeend", pauseNote("s", sel(), a, b));
 
   const pr = P.prevRange ? P.prevRange() : null;
   const cmp = (k, cur) => {
@@ -867,7 +896,7 @@ const LNCOL = ["#6d5dfc", "#ff7a1a", "#0f9f62", "#e0434b", "#1f8fe0", "#c026d3",
 function lnCandidates() {
   return [...items].filter(i => {
     if (NOW - i.created > 30 * 86400) return false;
-    const first = series("s", i.id).find(p => p.t > i.created);
+    const first = rawSeries("s", i.id).find(p => p.t > i.created);
     return first && first.t - i.created <= 48 * 3600;
   }).sort((a, b) => b.created - a.created);
 }
@@ -889,7 +918,7 @@ const LN = { d1: ["24 h", 1], d3: ["3 jours", 3], d7: ["7 jours", 7], d14: ["14 
 let lnK = "d3";
 try { const s = localStorage.getItem("fritasLn"); if (LN[s]) lnK = s; } catch (e) {}
 function launchPts(i) {
-  const s = series("s", i.id);
+  const s = rawSeries("s", i.id);
   return [{ t: i.created, v: 0, start: true }, ...s.filter(p => p.t > i.created)];
 }
 function valAt(pts, t) {
