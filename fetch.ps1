@@ -32,7 +32,8 @@ $body = @{ itemcount = $ids.Count }
 $n = 0
 foreach ($i in $ids) { $body["publishedfileids[$n]"] = $i; $n++ }
 $details = (Invoke-RestMethod -Method Post -Uri 'https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/' -Body $body).response.publishedfiledetails
-$mine = @($details | Where-Object { $_.result -eq 1 -and $_.creator -eq $steamId -and -not (@($_.tags | ForEach-Object { $_.tag }) -contains 'map') })
+$mapsGardees = @('3825420097')
+$mine = @($details | Where-Object { $_.result -eq 1 -and $_.creator -eq $steamId -and (-not (@($_.tags | ForEach-Object { $_.tag }) -contains 'map') -or $mapsGardees -contains [string]$_.publishedfileid) })
 
 $cbody = @{ collectioncount = $mine.Count }
 for ($k = 0; $k -lt $mine.Count; $k++) { $cbody["publishedfileids[$k]"] = $mine[$k].publishedfileid }
