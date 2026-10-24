@@ -1,0 +1,84 @@
+name: Stats Workshop
+
+on:
+  schedule:
+    - cron: '8,23,38,53 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  actions: write
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: stats
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      TZ: Europe/Paris
+      STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reprendre les relevés
+        run: |
+          if git fetch -q origin data; then
+            for f in history.json comments_cache.json followers.json ids.txt media media_cache.json pages_cache.json thumbs_cache.json; do git checkout FETCH_HEAD -- "$f" 2>/dev/null || true; done
+          fi
+
+      - name: Relevé Steam
+        shell: pwsh
+        run: ./fetch.ps1 -Fast
+
+      - name: Image d'aperçu
+        run: |
+          pip install --quiet pillow
+          python3 make_og.py
+
+      - name: Préparer le site
+        shell: pwsh
+        run: ./build_site.ps1
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Mettre le site en ligne
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Sauvegarder les relevés
+        run: |
+          git config user.name "fritas-stats"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q --orphan data
+          git add -A
+          git commit -q -m "Stats du $(date '+%d/%m/%Y %H:%M')"
+          git push -q -f origin data
+
+  relance:
+    needs: stats
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Relancer dans 15 min
+        run: |
+          sleep 780
+          n=$(gh run list --workflow stats.yml --json status,databaseId --jq "[.[] | select(.databaseId != ${{ github.run_id }}) | select(.status == \"queued\" or .status == \"pending\" or .status == \"waiting\" or .status == \"in_progress\")] | length" || echo 0)
+          if [ "$n" != "0" ]; then exit 0; fi
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if gh workflow run stats.yml --ref main; then exit 0; fi
+            sleep 60
+          done
+          exit 1
