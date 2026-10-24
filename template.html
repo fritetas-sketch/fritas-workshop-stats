@@ -246,6 +246,10 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .msg .kd { font: 700 11px var(--f-b); color: var(--k); border: 1px solid var(--k); border-radius: 999px; padding: 1px 7px; }
 .msg .reply { display: inline-block; margin-top: 6px; font: 700 13px var(--f-b); color: var(--bar); text-decoration: none; }
 .msg .reply:hover { text-decoration: underline; }
+.msg .tl { display: inline-block; margin: 6px 12px 0 0; padding: 0; border: 0; background: none; cursor: pointer; font: 700 13px var(--f-b); color: var(--muted); }
+.msg .tl:hover { color: var(--bar); text-decoration: underline; }
+.msg .tl[disabled] { cursor: wait; text-decoration: none; }
+.msg .tlsrc { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
 .tr { grid-template-columns: 58px 44px minmax(0, 1fr) 80px 92px; }
 .tr .n { display: grid; }
 .tr .best { font: 600 12px var(--f-b); color: var(--muted); }
@@ -721,7 +725,46 @@ const BUGRX = /\b(bugs?|errors?|erreur|crash(es|ed)?|broken|glitch\w*|doesn'?t w
 const REQRX = /\b(can you|could you|would you|will you|you should|pls|please|plz|request\w*|suggestion\w*|suggest)\b/i;
 const kindOf = c => c.me ? null : BUGRX.test(c.x) ? "bug" : /\?/.test(c.x) ? "question" : REQRX.test(c.x) ? "demande" : null;
 const KIND = { bug: ["Bug signalé", "var(--down)"], question: ["Question", "#1f8fe0"], demande: ["Demande", "var(--bar)"] };
-let chatMode = "all";
+let chatMode = "all", chatList = [];
+const tlCache = new Map();
+const langName = (() => { try { const dn = new Intl.DisplayNames(["fr"], { type: "language" }); return c => { try { return dn.of(c); } catch (e) { return c; } }; } catch (e) { return c => c; } })();
+async function translate(text) {
+  if (tlCache.has(text)) return tlCache.get(text);
+  const r = await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=fr&dt=t&q=" + encodeURIComponent(text));
+  if (!r.ok) throw new Error(r.status);
+  const j = await r.json();
+  const out = { x: (j[0] || []).map(s => s[0]).join(""), l: j[2] || "" };
+  tlCache.set(text, out);
+  return out;
+}
+function bindTranslate(box) {
+  box.querySelectorAll(".tl").forEach(b => b.addEventListener("click", async () => {
+    const c = chatList[+b.dataset.i], p = b.parentElement.querySelector("p");
+    if (b.dataset.on) {
+      p.textContent = c.x;
+      b.parentElement.querySelector(".tlsrc")?.remove();
+      delete b.dataset.on;
+      b.textContent = "Traduire";
+      return;
+    }
+    b.disabled = true;
+    b.textContent = "Traduction…";
+    try {
+      const t = await translate(c.x);
+      p.textContent = t.x;
+      const src = document.createElement("span");
+      src.className = "tlsrc";
+      src.textContent = t.l === "fr" ? "Déjà en français" : `Traduit par Google${t.l ? " · langue d'origine : " + langName(t.l) : ""}`;
+      p.after(src);
+      b.dataset.on = "1";
+      b.textContent = "Voir l'original";
+    } catch (e) {
+      window.open("https://translate.google.com/?sl=auto&tl=fr&op=translate&text=" + encodeURIComponent(c.x), "_blank", "noopener");
+      b.textContent = "Traduire";
+    }
+    b.disabled = false;
+  }));
+}
 function isAnswered(c, all) {
   const thread = all.filter(x => x.a === c.a).sort((x, y) => x.t - y.t);
   const after = thread.filter(x => x.t > c.t);
@@ -740,10 +783,12 @@ function drawChat() {
   const seg = document.getElementById("chatSeg");
   seg.innerHTML = `<button type="button" data-m="all" aria-pressed="${chatMode === "all"}">Tout</button><button type="button" data-m="todo" aria-pressed="${chatMode === "todo"}">À répondre <em class="${todo.length ? "hot" : ""}">${todo.length}</em></button>`;
   seg.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { chatMode = b.dataset.m; drawChat(); document.getElementById("msgs").scrollTop = 0; }));
-  document.getElementById("msgs").innerHTML = list.length ? list.map(c => {
+  chatList = list;
+  document.getElementById("msgs").innerHTML = list.length ? list.map((c, n) => {
     const i = byId[c.a], nm = c.n || "Joueur", k = kindOf(c), open = todoIds.has(c.a + "|" + c.t + "|" + c.n);
-    return `<div class="msg${c.me ? " me" : ""}${open ? " open" : ""}"><span class="av" style="background:${c.me ? "var(--bar)" : hue(nm)}">${esc([...nm][0].toUpperCase())}</span><div class="bub"><div class="meta"><b>${c.me ? "Toi" : esc(nm)}</b>${c.c && !c.me ? `<span class="cc" title="${esc(regionName(c.c))}">${esc(c.c)}</span>` : ""}<span>${ago(c.t)}</span>${sel() ? "" : `<a class="tag" href="${url(i.id)}" target="_blank" rel="noopener"><img src="${i.art}" alt="">${esc(nameOf(i))}</a>`}${open ? `<span class="kd" style="--k:${KIND[k][1]}">${KIND[k][0]}</span>` : ""}</div><p>${esc(c.x)}</p>${open ? `<a class="reply" href="${url(i.id)}" target="_blank" rel="noopener">Répondre sur Steam ↗</a>` : ""}</div></div>`;
+    return `<div class="msg${c.me ? " me" : ""}${open ? " open" : ""}"><span class="av" style="background:${c.me ? "var(--bar)" : hue(nm)}">${esc([...nm][0].toUpperCase())}</span><div class="bub"><div class="meta"><b>${c.me ? "Toi" : esc(nm)}</b>${c.c && !c.me ? `<span class="cc" title="${esc(regionName(c.c))}">${esc(c.c)}</span>` : ""}<span>${ago(c.t)}</span>${sel() ? "" : `<a class="tag" href="${url(i.id)}" target="_blank" rel="noopener"><img src="${i.art}" alt="">${esc(nameOf(i))}</a>`}${open ? `<span class="kd" style="--k:${KIND[k][1]}">${KIND[k][0]}</span>` : ""}</div><p>${esc(c.x)}</p>${c.me ? "" : `<button type="button" class="tl" data-i="${n}">Traduire</button>`}${open ? `<a class="reply" href="${url(i.id)}" target="_blank" rel="noopener">Répondre sur Steam ↗</a>` : ""}</div></div>`;
   }).join("") : `<p class="note">${chatMode === "todo" ? "Rien à répondre, tu es à jour !" : `Pas encore de commentaire${sel() ? " sur cet addon" : ""}.`}</p>`;
+  bindTranslate(document.getElementById("msgs"));
 }function drawGeo() {
   const C = Object.entries(DATA.countries || {}), known = C.filter(([k]) => k !== "?").sort((x, y) => y[1] - x[1]), unk = (DATA.countries || {})["?"] || 0;
   const kn = known.reduce((s, x) => s + x[1], 0);
