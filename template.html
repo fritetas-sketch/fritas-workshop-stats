@@ -1,28 +1,30 @@
 <title>Workshop Fritas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap">
 <style>
 :root {
-  --bg: #f3f5fa;
+  --bg: #f4f3fa;
   --card: #ffffff;
-  --ink: #101828;
-  --ink-2: #475467;
-  --muted: #8a94a6;
-  --line: #e4e7ef;
-  --bar: #6d5dfc;
-  --bar-soft: #e5e1ff;
-  --up: #0f9f62;
-  --up-bg: #dcfae9;
-  --down: #e0434b;
-  --down-bg: #fde5e6;
+  --ink: #15131f;
+  --ink-2: #4b4862;
+  --muted: #8a87a0;
+  --line: #e6e3f1;
+  --bar: #7353ff;
+  --bar-soft: #ebe6ff;
+  --up: #0c9c6b;
+  --up-bg: #d8f6e9;
+  --down: #e5484d;
+  --down-bg: #fde3e4;
   --hot: #ff7a1a;
-  --f-d: "Bricolage Grotesque", "Arial Black", system-ui, sans-serif;
-  --f-b: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --acc2: #0fb2d4;
+  --sh: 0 18px 40px -28px rgba(40,20,120,.35);
+  --f-d: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-b: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0d1017; --card: #161b26; --ink: #f2f4f8; --ink-2: #b4bccb; --muted: #7d879a; --line: #252c3a; --bar: #8b7dff; --bar-soft: #2a2550; --up: #3ddc97; --up-bg: #0f3326; --down: #ff6b72; --down-bg: #3d1a1d; --hot: #ff9442; color-scheme: dark; } }
-:root[data-theme="dark"] { --bg: #0d1017; --card: #161b26; --ink: #f2f4f8; --ink-2: #b4bccb; --muted: #7d879a; --line: #252c3a; --bar: #8b7dff; --bar-soft: #2a2550; --up: #3ddc97; --up-bg: #0f3326; --down: #ff6b72; --down-bg: #3d1a1d; --hot: #ff9442; color-scheme: dark; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #090a11; --card: #12141f; --ink: #f4f3fb; --ink-2: #bcb8d0; --muted: #807c98; --line: #24273a; --bar: #9d87ff; --bar-soft: #2b2452; --up: #3ee0a1; --up-bg: #0f3025; --down: #ff6b72; --down-bg: #3b171c; --hot: #ffa040; --acc2: #3fd8f7; --sh: 0 24px 48px -30px rgba(0,0,0,.9); color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #090a11; --card: #12141f; --ink: #f4f3fb; --ink-2: #bcb8d0; --muted: #807c98; --line: #24273a; --bar: #9d87ff; --bar-soft: #2b2452; --up: #3ee0a1; --up-bg: #0f3025; --down: #ff6b72; --down-bg: #3b171c; --hot: #ffa040; --acc2: #3fd8f7; --sh: 0 24px 48px -30px rgba(0,0,0,.9); color-scheme: dark; }
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--f-b); }
+body { background-color: var(--bg); background-image: radial-gradient(1100px 520px at 0% -8%, color-mix(in srgb, var(--bar) 20%, transparent), transparent 70%), radial-gradient(900px 480px at 105% 4%, color-mix(in srgb, var(--acc2) 15%, transparent), transparent 70%); background-repeat: no-repeat; color: var(--ink); font: 16px/1.5 var(--f-b); }
 .wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 64px; display: grid; gap: 22px; }
 img { max-width: 100%; display: block; }
 a { color: inherit; }
@@ -381,12 +383,107 @@ html { scroll-behavior: smooth; }
   .rkr .pos { grid-area: p; } .rkr img { grid-area: i; width: 38px; height: 38px; } .rkr .mid { grid-area: m; } .rkr .rb { grid-area: b; } .rkr .g { grid-area: g; font-size: 21px; }
   .heat td { height: 22px; }
 }
+
+/* ---- Refonte 20/11 ---- */
+.wrap { max-width: 1180px; gap: 20px; padding-block: 20px 72px; }
+.card { border-radius: 22px; box-shadow: 0 0 0 1px var(--line), var(--sh); background: var(--card); }
+.hero { position: relative; overflow: hidden; border-radius: 28px; padding: 26px 30px 24px; background: linear-gradient(125deg, color-mix(in srgb, var(--bar) 26%, var(--card)) 0%, color-mix(in srgb, var(--acc2) 10%, var(--card)) 55%, var(--card) 100%); box-shadow: 0 0 0 1px color-mix(in srgb, var(--bar) 30%, var(--line)), var(--sh); isolation: isolate; }
+.hero-art { position: absolute; z-index: -1; top: -30%; bottom: -30%; right: -6%; width: 50%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-content: center; transform: rotate(-9deg); opacity: .62; -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 50%); mask-image: linear-gradient(90deg, transparent 0%, #000 50%); pointer-events: none; }
+.hero-art img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 16px; box-shadow: 0 10px 24px -12px rgba(0,0,0,.6); }
+.hero-art img:nth-child(4n+2), .hero-art img:nth-child(4n+4) { transform: translateY(34%); }
+.hero-in { position: relative; display: grid; gap: 18px; max-width: 620px; }
+svg text { font-family: var(--f-b); }
+.top { font-size: 14px; color: var(--ink-2); }
+.top b { display: inline-flex; align-items: center; gap: 10px; font: 700 15px/1 var(--f-d); letter-spacing: .01em; }
+.top .logo { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font: 800 15px/1 var(--f-d); color: #fff; background: linear-gradient(135deg, var(--bar), var(--acc2)); box-shadow: 0 6px 16px -6px var(--bar); }
+.top a { color: var(--bar); }
+.headline h1 { font: 800 clamp(30px, 5.2vw, 58px)/1.02 var(--f-d); letter-spacing: -.035em; }
+.headline h1 em { background: linear-gradient(90deg, var(--up), color-mix(in srgb, var(--up) 55%, var(--acc2))); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.headline p { color: var(--ink-2); font-size: clamp(16px, 2vw, 19px); }
+.hero-tot { display: flex; flex-wrap: wrap; gap: 8px; }
+.hero-tot span { display: inline-flex; align-items: baseline; gap: 6px; padding: 8px 13px; border-radius: 12px; background: color-mix(in srgb, var(--card) 72%, transparent); box-shadow: 0 0 0 1px var(--line); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); font-size: 13px; font-weight: 600; color: var(--muted); }
+.hero-tot b { font: 700 16px/1 var(--f-d); color: var(--ink); }
+
+.topbar { top: 10px; margin: 0; padding: 6px; border: 0; border-radius: 18px; clip-path: none; background: color-mix(in srgb, var(--card) 82%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); box-shadow: 0 0 0 1px var(--line), 0 14px 34px -18px rgba(0,0,0,.45); }
+.periods { box-shadow: none; background: var(--bg); border-radius: 13px; }
+.periods button { border-radius: 10px; transition: background .15s, color .15s; }
+.periods button[aria-pressed="true"] { background: linear-gradient(135deg, var(--bar), color-mix(in srgb, var(--bar) 55%, var(--acc2))); color: #fff; box-shadow: 0 6px 16px -8px var(--bar); }
+.groups { background: color-mix(in srgb, var(--card) 70%, transparent); box-shadow: 0 0 0 1px var(--line); margin: 0; }
+.toc a { border-radius: 10px; }
+.toc a:hover { background: var(--bg); }
+section[id], .card[id] { scroll-margin-top: 96px; }
+
+.kpi { --k: var(--bar); position: relative; overflow: hidden; background: linear-gradient(165deg, color-mix(in srgb, var(--k) 15%, var(--card)) 0%, var(--card) 62%); }
+.kpi::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, var(--k), transparent); }
+.kpi:nth-child(2) { --k: var(--acc2); }
+.kpi:nth-child(3) { --k: var(--up); }
+.kpi:nth-child(4) { --k: #f5b301; }
+.kpi:nth-child(5) { --k: #ff5fa2; }
+.kpi .l { color: var(--k); letter-spacing: .1em; font-weight: 800; }
+.kpi .v { font: 700 clamp(24px, 2.8vw, 36px)/1.05 var(--f-d); letter-spacing: -.03em; }
+.kpi .v.wait { font-size: clamp(20px, 2.4vw, 28px); }
+.kpi .spark rect { fill: var(--k); }
+.kpi .spark rect.now { fill: var(--hot); }
+.cmp { border-radius: 8px; }
+
+.pfo { border-radius: 18px; background: linear-gradient(110deg, color-mix(in srgb, var(--acc2) 12%, var(--card)), var(--card) 60%); box-shadow: 0 0 0 1px var(--line), var(--sh); }
+.pfo b { font-family: var(--f-d); font-weight: 700; font-size: 22px; }
+
+.sec-t, .ch-h h2 { display: flex; align-items: center; gap: 12px; font: 700 20px/1.15 var(--f-d); letter-spacing: -.02em; }
+.sec-t::before, .ch-h h2::before { content: ""; flex: 0 0 auto; width: 6px; height: 22px; border-radius: 3px; background: linear-gradient(180deg, var(--bar), var(--acc2)); }
+.badge { border-radius: 10px; }
+.seg { border-radius: 13px; }
+.seg button { border-radius: 10px; }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--bar); font-weight: 800; box-shadow: 0 0 0 1px var(--line), 0 4px 12px -6px rgba(0,0,0,.3); }
+.cmp-quick button { border-radius: 10px; }
+.strip .av { border-radius: 18px; }
+
+.rkr { padding: 11px 10px; }
+.rkr:hover { border-radius: 14px; }
+.rkr .pos { font-family: var(--f-d); font-size: 14px; border-radius: 10px; }
+.rkr.p1 { background: linear-gradient(90deg, color-mix(in srgb, #f6c945 14%, transparent), transparent 60%); border-radius: 14px; }
+.rkr.p1 .pos { background: linear-gradient(135deg, #ffe07a, #f0b400); }
+.rkr img { width: 44px; height: 44px; border-radius: 12px; }
+.rkr { grid-template-columns: 30px 44px minmax(0, 1fr) minmax(140px, 250px) 90px; }
+.rkr .g, .rkr .g.neg, .rkr .g.z { font: 700 20px/1 var(--f-d); letter-spacing: -.02em; }
+.rkr .trk { height: 10px; border-radius: 5px; }
+
+.pr .p, .tr .rk, .lk-r .p, .wt .p { font-family: var(--f-d); font-weight: 700; }
+.pr .v, .ad .g, .un .v, .lk-r .v, .lk-st b, .fx b, .rc b { font-family: var(--f-d); font-weight: 700; letter-spacing: -.02em; }
+.msg .bub { border-radius: 4px 18px 18px 18px; }
+.msg.me .bub { border-radius: 18px 4px 18px 18px; background: linear-gradient(135deg, color-mix(in srgb, var(--bar) 22%, var(--card)), color-mix(in srgb, var(--acc2) 10%, var(--card))); }
+.msg.me .av { background: linear-gradient(135deg, var(--bar), var(--acc2)); }
+.wt .bar span { background: linear-gradient(90deg, var(--hot), #ff5fa2); }
+.geo div i::after { background: linear-gradient(90deg, var(--bar), var(--acc2)); }
+.heat td { border-radius: 6px; }
+#tip { border-radius: 12px; }
+.note { text-align: center; }
+
+@media (max-width: 820px) {
+  .hero { padding: 22px 20px 20px; }
+  .hero-art { width: 100%; right: -20%; opacity: .2; }
+}
+@media (max-width: 640px) {
+  .wrap { gap: 14px; }
+  .hero { border-radius: 22px; padding: 18px 16px; }
+  .hero-in { gap: 14px; }
+  .hero-tot span { padding: 6px 10px; }
+  .hero-tot b { font-size: 14px; }
+  .topbar { top: 6px; border-radius: 16px; }
+  .sec-t, .ch-h h2 { font-size: 17px; }
+  .rkr { grid-template-columns: 28px 38px minmax(0, 1fr) auto; }
+  .rkr img { width: 38px; height: 38px; }
+  .rkr .g, .rkr .g.neg, .rkr .g.z { font-size: 18px; }
+  .kpi .v { font-size: 24px; }
+}
 </style>
 
 <div class="wrap">
-  <div class="top"><b>Workshop Fritas</b><span>Relevé <span id="ago"></span> · <a id="prof" target="_blank" rel="noopener">Ouvrir le Workshop ↗</a></span></div>
-
-  <div class="headline"><h1 id="h1"></h1><p id="h2"></p></div>
+  <header class="hero"><div class="hero-art" id="heroArt" aria-hidden="true"></div><div class="hero-in">
+    <div class="top"><b><span class="logo" aria-hidden="true">F</span>Workshop Fritas</b><span>Relevé <span id="ago"></span> · <a id="prof" target="_blank" rel="noopener">Ouvrir le Workshop ↗</a></span></div>
+    <div class="headline"><h1 id="h1"></h1><p id="h2"></p></div>
+    <div class="hero-tot" id="heroTot"></div>
+  </div></header>
 
   <div class="topbar">
   <div class="periods" role="group" aria-label="Période" id="periods">
@@ -1147,4 +1244,14 @@ drawGeo();
 drawHeat();
 let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { drawChart(); drawCmp(); drawLaunch(); }, 150); });
 try { const y = sessionStorage.getItem("fritasScroll"); if (y != null) { sessionStorage.removeItem("fritasScroll"); requestAnimationFrame(() => scrollTo(0, +y)); } } catch (e) {}
+</script>
+<script>
+(() => {
+  const top = [...allItems].sort((a, b) => b.subs - a.subs);
+  const art = i => i.media && /\.gif$/i.test(i.media) ? i.media.replace(/\.gif$/i, "_t.jpg") : (i.media || i.cover || i.thumb);
+  document.getElementById("heroArt").innerHTML = top.slice(0, 16).map(i => `<img src="${art(i)}" alt="" loading="lazy">`).join("");
+  const sum = k => allItems.reduce((a, i) => a + (i[k] || 0), 0);
+  const chips = [[fmt(allItems.length), "addons"], [fmt(sum("subs")), "abonnés"], [fmt(sum("views")), "vues"], [fmt(sum("likes")), "likes"]];
+  document.getElementById("heroTot").innerHTML = chips.map(([v, l]) => `<span><b class="num">${v}</b>${l}</span>`).join("");
+})();
 </script>
