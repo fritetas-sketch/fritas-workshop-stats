@@ -594,9 +594,9 @@ function render() {
   const covered = gl ? gl.hi - gl.lo - pauseIn(gl.lo, gl.hi) : 0;
 
   document.getElementById("h1").innerHTML = gs && gs.v > 0 ? `<em class="num">+${fmt(gs.v)}</em> abonnés ${P.lab}.` : gs ? `<em class="num" style="color:var(--down)">${sgn(gs.v)}</em> abonnés ${P.lab}.` : `Pas encore de chiffres ${P.lab}.`;
-  const unsub = gl && gn ? Math.max(0, gl.v - gn.v) : 0, back = gl && gn ? Math.max(0, gn.v - gl.v) : 0;
+  const rkG = items.map(i => { const g1 = gainIn(series("ls", i.id), a, b), n1 = gainIn(series("s", i.id), a, b); return g1 && n1 ? { g: Math.round(g1.v), d: Math.round(g1.v - n1.v) } : null; }).filter(Boolean); const gained = rkG.reduce((t, r) => t + Math.max(0, r.g), 0), unsub = rkG.reduce((t, r) => t + Math.max(0, r.d), 0), back = unsub ? 0 : rkG.reduce((t, r) => t + Math.max(0, -r.d), 0);
   document.getElementById("h2").innerHTML = gl && gs && gl.v > 0
-    ? `Vrais chiffres : <b>+${fmt(gl.v)}</b> nouveaux abonnés ${back > 0 ? `et <b>+${fmt(back)}</b> anciens abonnés revenus` : `moins <b style="color:var(--down)">${fmt(unsub)}</b> désabonnements`}. ${gs.v > 0 ? `Soit un abonné de plus toutes les <b>${every(covered / gs.v)}</b>. ` : ""}${lead && lead.g > 0 && gs.v > 0 ? `<b>${esc(nameOf(lead.i))}</b> en ramène le plus (${Math.round(lead.g / gs.v * 100)} %).` : ""}`
+    ? `Vrais chiffres : <b>+${fmt(gained)}</b> nouveaux abonnés ${back > 0 ? `et <b>+${fmt(back)}</b> anciens abonnés revenus` : `moins <b style="color:var(--down)">${fmt(unsub)}</b> désabonnements`}. ${gs.v > 0 ? `Soit un abonné de plus toutes les <b>${every(covered / gs.v)}</b>. ` : ""}${lead && lead.g > 0 && gs.v > 0 ? `<b>${esc(nameOf(lead.i))}</b> en ramène le plus (${Math.round(lead.g / gs.v * 100)} %).` : ""}`
     : `Le premier relevé date du ${longWhen(T0)}. Les chiffres arrivent tout seuls, au fil des relevés.`;
   document.getElementById("h2").insertAdjacentHTML("beforeend", pauseNote("s", sel(), a, b));
 
