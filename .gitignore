@@ -1,0 +1,8 @@
+_site/
+players_cache.json
+steam_api_key.txt
+github_token.txt
+*.lnk
+og.png
+favicon.png
+og.json
