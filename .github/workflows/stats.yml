@@ -51,11 +51,25 @@ jobs:
         with:
           path: _site
 
+      - name: Attendre l'archive du site
+        run: sleep 20
+
       - name: Mettre le site en ligne
         id: deploy
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: Attendre avant le 2e essai
+        if: steps.deploy.outcome == 'failure'
+        run: sleep 45
+
+      - name: Mettre le site en ligne (2e essai)
+        id: deploy2
+        if: steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v4
 
       - name: Sauvegarder les relevés
+        if: ${{ !cancelled() }}
         run: |
           git config user.name "fritas-stats"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
